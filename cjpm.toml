@@ -1,0 +1,44 @@
+[package]
+  cjc-version = "1.0.4"
+  name = "linderHttp"
+  description = "nothing here"
+  version = "1.0.0"
+  target-dir = ""
+  src-dir = ""
+  output-type = "dynamic"
+  override-compile-option = ""
+  link-option = ""
+  [package.package-configuration]
+
+[dependencies]
+
+[target]
+  [target.aarch64-linux-ohos]
+    compile-option = "-B \"${DEVECO_CANGJIE_HOME}/compiler/third_party/llvm/bin\" -B \"${DEVECO_CANGJIE_HOME}/musl/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_CANGJIE_HOME}/musl/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_CANGJIE_HOME}/build/linux_ohos_aarch64_llvm/openssl\" --sysroot \"${DEVECO_CANGJIE_HOME}/musl\" --cfg \"ohos=true\""
+    [target.aarch64-linux-ohos.bin-dependencies]
+      path-option = [ "${AARCH64_LIBS}", "${AARCH64_MACRO_LIBS}", "${CANGJIE_STDX_PATH}/linux_ohos_aarch64_llvm/static/stdx" ]
+  [target.x86_64-linux-ohos]
+    compile-option = "-B \"${DEVECO_CANGJIE_HOME}/compiler/third_party/llvm/bin\" -B \"${DEVECO_CANGJIE_HOME}/musl/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_CANGJIE_HOME}/musl/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_CANGJIE_HOME}/build/linux_ohos_x86_64_llvm/openssl\" --sysroot \"${DEVECO_CANGJIE_HOME}/musl\" --cfg \"ohos=true\""
+    [target.x86_64-linux-ohos.bin-dependencies]
+      path-option = [ "${X86_64_OHOS_LIBS}", "${X86_64_OHOS_MACRO_LIBS}", "${CANGJIE_STDX_PATH}/linux_ohos_x86_64_llvm/static/stdx" ]
+  [target.x86_64-unknown-linux-gnu]
+    compile-option = "--cfg \"ohos=false\""
+    [target.x86_64-unknown-linux-gnu.bin-dependencies]
+      path-option = [ "${CANGJIE_STDX_PATH}/linux_x86_64_llvm/static/stdx" ]
+  [target.aarch64-unknown-linux-gnu]
+    compile-option = "--cfg \"ohos=false\""
+    [target.aarch64-unknown-linux-gnu.bin-dependencies]
+      path-option = [ "${CANGJIE_STDX_PATH}/linux_aarch64_llvm/static/stdx" ]
+  [target.x86_64-w64-mingw32]
+    compile-option = "--cfg \"ohos=false\""
+    link-option = "-lcrypt32"
+    [target.x86_64-w64-mingw32.bin-dependencies]
+      path-option = [ "${CANGJIE_STDX_PATH}/windows_x86_64_llvm/static/stdx" ]
+  [target.x86_64-apple-darwin]
+    compile-option = "--cfg \"ohos=false\""
+    [target.x86_64-apple-darwin.bin-dependencies]
+      path-option = [ "${X86_64_MACOS_LIBS}", "${X86_64_MACOS_MACRO_LIBS}", "${CANGJIE_STDX_PATH}/darwin_x86_64_llvm/static/stdx" ]
+  [target.aarch64-apple-darwin]
+    compile-option = "--cfg \"ohos=false\""
+    [target.aarch64-apple-darwin.bin-dependencies]
+      path-option = [ "${AARCH64_MACOS_LIBS}", "${AARCH64_MACOS_MACRO_LIBS}", "${CANGJIE_STDX_PATH}/darwin_aarch64_llvm/static/stdx" ]
