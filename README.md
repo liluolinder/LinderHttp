@@ -21,7 +21,7 @@ LinderHttp 是一个轻量级 HTTP 客户端库，提供请求构建、响应解
 LinderHttp = { git = "https://gitcode.com/LiquidStudio/LinderHttp.git" }
 ```
 
-**2️⃣ 安装与构建**
+### 2️⃣ 安装与构建
 ```bash
 cjpm update  # 🔄 更新依赖
 cjpm build   # 🛠️ 构建项目
@@ -29,6 +29,202 @@ cjpm build   # 🛠️ 构建项目
 
 ## 🚀 功能示例  
 
+### GET请求
+
+```Cangjie
+import linderHttp.*
+import linderHttp.utils.*
+import linderHttp.commons.*
+
+main(): Int64 {
+    let test: LinderHttp = LinderHttp(
+        url: RequestUrl.from("http://example.com"),
+        method: RequestMethod.GET,
+    )
+    let res = test.send()
+    res.status |> println //输出响应状态
+    return 0
+}
+```
+
+### POST请求-请求体为JSON(application/json)
+- 示例JSON
+```Json
+{
+  "name": "张三",
+  "age": "18"
+}
+```
+- 请求方式
+```Cangjie
+import linderHttp.*
+import linderHttp.utils.*
+import linderHttp.commons.*
+import stdx.encoding.json.*
+
+main(): Int64 {
+
+    //JsonObject构造
+    var body: JsonObject = JsonObject()
+    body.put('name', JsonString("张三"))
+    body.put('age', JsonString("18"))
+    body.toJsonString() |> println
+
+    //字符串构造
+    body = JsonValue.fromStr(
+        #"{
+            "name": "张三",
+            "age": "18"
+        }"#).asObject()
+
+    let test: LinderHttp = LinderHttp(
+        url: RequestUrl.from("http://example.com"),
+        method: RequestMethod.POST,
+        requestBody: RequestBody.from(body)
+    )
+    let res = test.send()
+    res.status |> println //输出响应状态
+    return 0
+}
+```
+
+### POST请求-请求体为Form(application/x-www-form-urlencoded)
+
+- 示例Form
+```
+name=%E5%BC%A0%E4%B8%89&age=18
+```
+
+- 请求方式
+```Cangjie
+import linderHttp.*
+import linderHttp.utils.*
+import linderHttp.commons.*
+import stdx.encoding.url.*
+
+main(): Int64 {
+    //Form构造
+    var body: Form = Form()
+    body.add('name', "张三")
+    body.add('age', "18")
+
+    body.toEncodeString() |> println
+
+    let test: LinderHttp = LinderHttp(
+        url: RequestUrl.from("http://example.com"),
+        method: RequestMethod.POST,
+        requestBody: RequestBody.from(body)
+    )
+    let res = test.send()
+    res.status |> println //输出响应状态
+    return 0
+}
+```
+
+### 拦截器(lamdba构造)
+```Cangjie
+import linderHttp.*
+import linderHttp.utils.*
+import linderHttp.commons.*
+
+main(): Int64 {
+    let test: LinderHttp = LinderHttp(
+        url: RequestUrl.from("http://example.com"),
+        method: RequestMethod.GET,
+        intercept: Intercept(requestL: {
+            req: LinderHttp => req.url |> println //输出请求域名
+        }, requestErrorL: {
+            err: Exception => '小笨蛋，请求出错了哦，错误信息为${err.message}'  |> println
+        }, responseL: {
+            res: LinderHttpResponse => res.status |> println //输出响应状态
+        }, responseErrorL: {
+            err: Exception => '小笨蛋，请求出错了哦，错误信息为${err.message}'  |> println
+        })
+    )
+    let res = test.send()
+    res.status |> println //输出响应状态
+    return 0
+}
+
+```
+### 拦截器(自定义对象构造)
+
+```Cangjie
+import linderHttp.*
+import linderHttp.utils.*
+import linderHttp.commons.*
+
+public class MyInterCept <: LinderIntercept {
+    public func request(req: LinderHttp): Unit {
+        req.url |> println //输出请求域名
+    }
+
+    public func requestError(error: Exception): Unit {
+        '小笨蛋，请求出错了哦，错误信息为${error.message}' |> println
+    }
+
+    public func response(res: LinderHttpResponse): Unit {
+        res.status |> println //输出响应状态
+    }
+
+    public func responseError(error: Exception): Unit {
+        '小笨蛋，请求出错了哦，错误信息为${error.message}' |> println
+    }
+}
+
+main(): Int64 {
+    let test: LinderHttp = LinderHttp(
+        url: RequestUrl.from("http://example.com"),
+        method: RequestMethod.GET,
+        intercept: MyInterCept()
+    )
+    let res = test.send()
+    res.status |> println //输出响应状态
+    return 0
+}
+```
+
+### 响应体操作
+
+```Cangjie
+import linderHttp.*
+import linderHttp.utils.*
+import linderHttp.commons.*
+
+main(): Int64 {
+    let test: LinderHttp = LinderHttp(
+        url: RequestUrl.from("http://example.com"),
+        method: RequestMethod.GET
+    )
+    let res = test.send()
+
+    res.setCookie //获取响应头中 Set-Cookie 字段所有内容
+    res.location //获取响应头中 location 字段所有内容
+    res.contentType // 获取响应头中 contentType 字段所有内容
+
+    /*
+        一下为示例代码，getBodyXXX系列对body读取代码只能使用一个且只能使用一次
+     */
+    //将body以String类型返回
+    res.getBodyString()
+    //将body以JSONValue类型返回
+    res.getBodyJsonValue()
+    //将body以JsonObject类型返回
+    res.getBodyJsonObject()
+    //将body以JsonString类型返回
+    res.getBodyJsonString()
+    //将body输出文件
+    res.getBodyFile(filePath: Path('./test'))
+    //将body以InputStream类型返回
+    res.getBodyStream()
+    //将body以DataModel类型返回，方便序列化与反序列化
+    res.getBodyDataModel()
+    //将body以ByteBuffer类型返回
+    res.getBodyByteBuffer()
+    return 0
+}
+
+```
 
 ## ⚠️ 约束与限制  
 验证通过的运行环境：  

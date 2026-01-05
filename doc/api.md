@@ -111,7 +111,7 @@ RequestBody.from(v: JsonObject)
 ---
 
 ### 2.4 RequestUrl
-表示请求URL的类型。
+表示请求URL的类型。实现`ToString`接口。
 
 | 枚举值 | 说明 |
 |--------|------|
