@@ -121,7 +121,7 @@ main(): Int64 {
 }
 ```
 
-### 拦截器(lamdba构造)
+### 拦截器(lambda构造)
 ```Cangjie
 import linderHttp.*
 import linderHttp.utils.*
