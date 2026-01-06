@@ -18,7 +18,7 @@ LinderHttp 是一个轻量级 HTTP 客户端库，提供请求构建、响应解
 在 `cjpm.toml` 中添加：  
 ```toml
 [dependencies]
-LinderHttp = { git = "https://gitcode.com/LiquidStudio/LinderHttp.git" }
+linderHttp = { git = "https://gitcode.com/LiquidStudio/LinderHttp.git" }
 ```
 
 ### 2️⃣ 安装与构建
