@@ -161,7 +161,7 @@ public class LinderHttp {
         httpsProxy!: String = ''
     ) {
         this.url = url
-        this.tlsConfig.domain = if (domin != '') {
+        this.tlsConfig.domain = if (domin != '' || this.tlsConfig.domain.isNone() ) {
             domin
         } else {
             match (url) {
@@ -205,7 +205,7 @@ public class LinderHttp {
      */
     public func setUrl(v: RequestUrl): LinderHttp {
         url = v
-        tlsConfig.domain = if (tlsConfig.domain != '') {
+        tlsConfig.domain = if (tlsConfig.domain != '' || tlsConfig.domain.isNone()) {
             tlsConfig.domain
         } else {
             match (url) {
@@ -226,7 +226,7 @@ public class LinderHttp {
      */
     public func setUrl(v: String): LinderHttp {
         url = RequestUrl.from(v)
-        tlsConfig.domain = if (tlsConfig.domain != '') {
+        tlsConfig.domain = if (tlsConfig.domain != '' || tlsConfig.domain.isNone()) {
             tlsConfig.domain
         } else {
             match (url) {
@@ -247,7 +247,7 @@ public class LinderHttp {
      */
     public func setUrl(v: URL): LinderHttp {
         url = RequestUrl.from(v)
-        tlsConfig.domain = if (tlsConfig.domain != '') {
+        tlsConfig.domain = if (tlsConfig.domain != '' || tlsConfig.domain.isNone() ) {
             tlsConfig.domain
         } else {
             match (url) {
