@@ -595,7 +595,7 @@ public class LinderHttp {
             response = LinderHttpResponse(body: res.body, bodySize: res.bodySize, status: res.status,
                 headers: res.headers, isPersistent: res.isPersistent, request: res.request)
             if (needSetDefaultHeader) {
-                httpHeader = LinderHttpHeader()
+                setDefaultHeader()
             }
         } catch (e: Exception) {
             if (linderIntercept.isSome()) {
@@ -606,6 +606,7 @@ public class LinderHttp {
         if (linderIntercept.isSome()) {
             linderIntercept.getOrThrow().response(response)
         }
+        clearBody()
         response
     }
 }
