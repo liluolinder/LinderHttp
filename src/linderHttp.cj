@@ -143,7 +143,7 @@ public class LinderHttp {
      *    - 双Header容器互斥检测
      */
     public init(
-        url!: RequestUrl,
+        url!: RequestUrl = RequestUrl.from(''),
         domin!: String = '',
         tlsConfig!: ?TlsClientConfig = None,
         linderHttpHeader!: ?LinderHttpHeader = None,
