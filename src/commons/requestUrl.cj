@@ -1,6 +1,6 @@
 package linderHttp.commons
 
-public enum RequestUrl<:ToString {
+public enum RequestUrl <: ToString {
     | STRING(String)
     | URL(URL)
 
@@ -12,10 +12,10 @@ public enum RequestUrl<:ToString {
         RequestUrl.URL(v)
     }
 
-    public func toString():String{
-        match(this){
-            case STRING(v)=>v
-            case URL(v)=>v.toString()
+    public func toString(): String {
+        match (this) {
+            case STRING(v) => v
+            case URL(v) => v.toString()
         }
     }
 }
