@@ -1,11 +1,5 @@
 package linderHttp
 
-import std.io.*
-import stdx.net.http.*
-import std.fs.*
-import linderHttp.commons.*
-import linderHttp.utils.*
-
 public class LinderHttpResponse {
     /**
      * 构造HTTP响应对象
@@ -16,14 +10,16 @@ public class LinderHttpResponse {
      * @param headers 响应头集合（键值对容器）
      * @param isPersistent 连接是否保持
      * @param request 关联的请求对象（可选）
+     * @param intercept 拦截器（可选）
      */
     public LinderHttpResponse(
-        public var body!: ?InputStream,
-        public var bodySize!: ?Int64,
+        public var body!: ?InputStream = None,
+        public var bodySize!: ?Int64 = None,
         public var status!: UInt16,
         public var headers!: HttpHeaders,
         public var isPersistent!: Bool,
-        public var request!: ?HttpRequest
+        public var request!: ?HttpRequest = None,
+        public var intercept!: ?LinderIntercept = None
     ) {}
 
     public init() {
@@ -33,6 +29,7 @@ public class LinderHttpResponse {
         headers = HttpHeaders()
         isPersistent = false
         request = None
+        intercept = None
     }
 
     /**
@@ -170,7 +167,14 @@ public class LinderHttpResponse {
      *
      */
     public func getBodyFile(filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.HARMONY) {
-        export2File(content: body.getOrThrow(), filePath: filePath, conflictMethod: conflictMethod)
+        var exortIntercept: Export2FileIntercept = Export2FileIntercept()
+        if (intercept.isSome()) {
+            exortIntercept.onStartRead = intercept.getOrThrow().onStartRead
+            exortIntercept.onReadProgressUpdate = intercept.getOrThrow().onReadProgressUpdate
+            exortIntercept.onReadEnd = intercept.getOrThrow().onReadEnd
+        }
+        export2File(content: body.getOrThrow(), filePath: filePath, conflictMethod: conflictMethod,
+            totalSize: bodySize.getOrDefault({=> 0}), intercept: exortIntercept)
     }
 
     /**

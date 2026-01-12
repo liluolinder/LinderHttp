@@ -131,15 +131,30 @@ main(): Int64 {
     let test: LinderHttp = LinderHttp(
         url: RequestUrl.from("http://example.com"),
         method: RequestMethod.GET,
-        intercept: Intercept(requestL: {
-            req: LinderHttp => req.url |> println //输出请求域名
-        }, requestErrorL: {
-            err: Exception => '小笨蛋，请求出错了哦，错误信息为${err.message}'  |> println
-        }, responseL: {
-            res: LinderHttpResponse => res.status |> println //输出响应状态
-        }, responseErrorL: {
-            err: Exception => '小笨蛋，请求出错了哦，错误信息为${err.message}'  |> println
-        })
+        intercept: Intercept(
+            requestL: {
+                req: LinderHttp => req.url |> println //输出请求域名
+            },
+            requestErrorL: {
+                err: Exception => '小笨蛋，请求出错了哦，错误信息为${err.message}' |> println
+            },
+            responseL: {
+                res: LinderHttpResponse => res.status |> println //输出响应状态
+            },
+            responseErrorL: {
+                err: Exception => '小笨蛋，请求出错了哦，错误信息为${err.message}' |> println
+            },
+            onStartReadL: {
+                totalSize: Int64 => '文件总大小为${totalSize}' |> println
+            },
+            onReadProgressUpdateL: {
+                singleReadSize: Int64, hasReadSize: Int64, totalSize: Int64 => '本次读取文件大小为${singleReadSize}, 已经读取了${hasReadSize}, 总大小为${totalSize}' |>
+                    println
+            },
+            onReadEndL: {
+              path:?Path  => '保存完成,保存地址为${path}' |> println
+            }
+        )
     )
     let res = test.send()
     res.status |> println //输出响应状态
@@ -169,6 +184,18 @@ public class MyInterCept <: LinderIntercept {
 
     public func responseError(error: Exception): Unit {
         '小笨蛋，请求出错了哦，错误信息为${error.message}' |> println
+    }
+
+    public func onStartRead(totalSize: Int64): Unit {
+        '文件总大小为${totalSize}' |> println
+    }
+
+    public func onReadProgressUpdate(singleReadSize: Int64, hasReadSize: Int64, totalSize: Int64): Unit {
+       '本次读取文件大小为${singleReadSize}, 已经读取了${hasReadSize}, 总大小为${totalSize}' |> println
+    }
+
+    public func onReadEnd(path:?Path): Unit{
+       '保存完成,保存地址为${path}' |> println
     }
 }
 

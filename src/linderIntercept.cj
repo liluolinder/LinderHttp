@@ -30,6 +30,32 @@ public interface LinderIntercept {
      * @param error Exception 捕获的异常对象实例
      */
     func responseError(error: Exception): Unit
+
+    /**
+     * 输入流读取开始时的回调函数
+     *
+     * 触发时机：调用 `getBodyFile()` 保存响应体到文件时，在首次读取输入流前触发
+     * @param totalSize UInt64 InputStream总Byte数
+     */
+    func onStartRead(totalSize: Int64): Unit
+
+    /**
+     * 输入流读取进度更新的回调函数
+     *
+     * 触发时机：调用 `getBodyFile(filePath)` 保存响应体到文件时，每次从输入流读取数据后触发
+     * @param singleReadSize UInt64 单次读取Byte数
+     * @param hasReadSize UInt64 已经读取Byte数
+     * @param totalSize UInt64 InputStream总Byte数
+     */
+    func onReadProgressUpdate(singleReadSize: Int64, hasReadSize: Int64, totalSize: Int64): Unit
+
+    /**
+     * 输入流读取完成时的回调函数
+     *
+     * 触发时机：调用 `getBodyFile(filePath:conflictMethod:)` 保存响应体到文件时，在输入流读取结束后触发
+     * @param Path 保存文件的地址
+     */
+    func onReadEnd(path:?Path): Unit
 }
 
 public class Intercept <: LinderIntercept {
@@ -37,7 +63,10 @@ public class Intercept <: LinderIntercept {
         let requestL!: (LinderHttp) -> Unit = {_ =>},
         let requestErrorL!: (Exception) -> Unit = {_ =>},
         let responseL!: (LinderHttpResponse) -> Unit = {_ =>},
-        let responseErrorL!: (Exception) -> Unit = {_ =>}
+        let responseErrorL!: (Exception) -> Unit = {_ =>},
+        let onStartReadL!: (Int64) -> Unit = {_ =>},
+        let onReadProgressUpdateL!: (Int64, Int64, Int64) -> Unit = {_, _, _ =>},
+        let onReadEndL!: (path:?Path) -> Unit = {_=>}
     ) {}
     public func request(http: LinderHttp): Unit {
         requestL(http)
@@ -50,5 +79,17 @@ public class Intercept <: LinderIntercept {
     }
     public func responseError(error: Exception): Unit {
         responseErrorL(error)
+    }
+
+    public func onStartRead(totalSize: Int64): Unit {
+        onStartReadL(totalSize)
+    }
+
+    public func onReadProgressUpdate(singleReadSize: Int64, hasReadSize: Int64, totalSize: Int64): Unit {
+        onReadProgressUpdateL(singleReadSize, hasReadSize, totalSize)
+    }
+
+    public func onReadEnd(path:?Path): Unit {
+        onReadEndL(path)
     }
 }

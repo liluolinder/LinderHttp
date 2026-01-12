@@ -150,7 +150,8 @@ public func export2File(
 public func export2File(
     content!: InputStream, 
     filePath!: Path, 
-    conflictMethod!: ConflictMethod = ConflictMethod.HARMONY
+    conflictMethod!: ConflictMethod = ConflictMethod.HARMONY,
+    intercept!:?Export2FileIntercept = None
 )
 ```
 
@@ -765,6 +766,7 @@ HTTP响应封装类。
 | `headers` | `HttpHeaders` | 响应头集合 |
 | `isPersistent` | `Bool` | 连接是否保持 |
 | `request` | `?HttpRequest` | 关联的请求对象 |
+| `intercept` | `?LinderIntercept` | 拦截器 |
 
 #### 4.3.2 Prop
 
@@ -1011,6 +1013,10 @@ public interface LinderIntercept {
     func requestError(error: Exception): Unit
     func response(res: LinderHttpResponse): Unit
     func responseError(error: Exception): Unit
+    func onStartRead(totalSize: UInt64): Unit
+    func onReadProgressUpdate(singleReadSize: UInt64, hasReadSize: UInt64, totalSize: UInt64): Unit
+    func onReadEnd(): Unit
+
 }
 ```
 
@@ -1086,15 +1092,60 @@ HTTP请求参数组装完成，即将发起网络请求前
 
 ---
 
+##### 5. `onStartRead(totalSize: Int64): Unit`
+**输入流读取开始时的回调函数**
+
+##### 触发时机
+调用 `getBodyFile()` 保存响应体到文件时，在首次读取输入流前触发
+
+##### 参数说明
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| `totalSize` | `Int64` | InputStream总Byte数 |
+
+---
+
+##### 6. `onReadProgressUpdate(singleReadSize: Int64, hasReadSize: Int64, totalSize: Int64): Unit`
+**输入流读取进度更新的回调函数**
+
+##### 触发时机
+调用 `getBodyFile(filePath)` 保存响应体到文件时，每次从输入流读取数据后触发
+
+##### 参数说明
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| `singleReadSize` | `Int64` | 单次读取Byte数 |
+| `hasReadSize` | `Int64` | 已经读取Byte数 |
+| `totalSize` | `Int64` | InputStream总Byte数 |
+
+---
+
+
+##### 6. `onReadEnd(): Unit`
+**输入流读取完成时的回调函数**
+
+##### 触发时机
+调用 `getBodyFile(filePath:conflictMethod:)` 保存响应体到文件时，在输入流读取结束后触发
+
+##### 参数说明
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| `path` | `?Path` | 保存文件的地址 |
+
+---
+
 ###### 4.4.1 Intercept 实现类
 ```Cangjie
 public class Intercept <: LinderIntercept {
-    public init(
-        let requestL: (LinderHttp) -> Unit = {_ ->},
-        let requestErrorL: (Exception) -> Unit = {_ ->},
-        let responseL: (LinderHttpResponse) -> Unit = {_ ->},
-        let responseErrorL: (Exception) -> Unit = {_ ->}
-    )
+     public Intercept(
+        let requestL!: (LinderHttp) -> Unit = {_ =>},
+        let requestErrorL!: (Exception) -> Unit = {_ =>},
+        let responseL!: (LinderHttpResponse) -> Unit = {_ =>},
+        let responseErrorL!: (Exception) -> Unit = {_ =>},
+        let onStartReadL!: (Int64) -> Unit = {_ =>},
+        let onReadProgressUpdateL!: (Int64, Int64, Int64) -> Unit = {_, _, _ =>},
+        let onReadEndL!: (path:?Path) -> Unit = {_=>}
+    ) {}
 }
 ```
 **作用：**

@@ -1,15 +1,5 @@
 package linderHttp
 
-import stdx.net.http.*
-import stdx.net.tls.*
-import stdx.encoding.url.*
-import std.io.*
-import std.fs.*
-import linderHttp.utils.*
-import linderHttp.commons.*
-import stdx.serialization.serialization.*
-import stdx.encoding.json.*
-
 public class LinderHttp {
     /**
      * HTTP客户端构建器实例
@@ -607,7 +597,9 @@ public class LinderHttp {
             if (linderIntercept.isSome()) {
                 linderIntercept.getOrThrow().requestError(e)
             }
-        }
+        }   
+
+        response.intercept = linderIntercept
 
         if (linderIntercept.isSome()) {
             linderIntercept.getOrThrow().response(response)

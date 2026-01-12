@@ -1,7 +1,5 @@
 package linderHttp
 
-import stdx.net.http.*
-
 public class LinderHttpHeader {
     /// 底层HTTP头存储容器（键值对集合）
     public var httpHeader: HttpHeaders = HttpHeaders()
