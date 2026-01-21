@@ -19,7 +19,7 @@ public class LinderHttp {
     /**
      * 目标请求URL
      * 默认值：空字符串
-     * 关联更新：调用`setUrl()`时自动同步更新`tlsConfig.domain`
+     * 关联更新：调用`setUrl()`时自动同步更新`tlsConfig.serverName`
      */
     public var url: RequestUrl = RequestUrl.from('')
 
@@ -34,8 +34,8 @@ public class LinderHttp {
      * TLS/SSL客户端安全配置
      *
      * 默认值：`defaultTSLConfig()`生成的基准配置
-     * 特殊机制：`setUrl()`会重置domain为URL的hostName，
-     * 需显式调用`setDomin()`覆盖此行为
+     * 特殊机制：`setUrl()`会重置serverName为URL的hostName，
+     * 需显式调用`setserverName()`覆盖此行为
      */
     public var tlsConfig: TlsClientConfig = defaultTSLConfig()
 
@@ -102,12 +102,12 @@ public class LinderHttp {
      * 初始化
      *
      * @param url 请求的目标URL（包含协议头，如https://）
-     * @param domin 自定义域名标识，用于TLS握手验证
+     * @param serverName 自定义域名标识，用于TLS握手验证
      *     - 若未设置则从url自动设置
-     *     - 优先级低于tlsConfig：若同时设置domin和tlsConfig，domin将被忽略
-     *     - 默认行为：当domin为空时，自动从url解析hostName
+     *     - 优先级低于tlsConfig：若同时设置serverName和tlsConfig，serverName将被忽略
+     *     - 默认行为：当serverName为空时，自动从url解析hostName
      * @param tlsConfig TLS客户端配置，默认使用defaultTSLConfig()
-     *     - 重要：该参数会覆盖domin的设置，两者同时存在时以tlsConfig为准
+     *     - 重要：该参数会覆盖serverName的设置，两者同时存在时以tlsConfig为准
      * @param linderHttpHeader 库专属HTTP头容器
      * @param httpHeaders 通用HTTP头容器
      *     - 互斥约束：linderHttpHeader与httpHeaders不可同时设置，否则抛出IllegalArgumentException
@@ -127,14 +127,14 @@ public class LinderHttp {
      *
      * 初始化逻辑说明：
      * 1. TLS域名处理：
-     *    - 优先尝试使用domin参数设置tlsConfig.domain
+     *    - 优先尝试使用serverName参数设置tlsConfig.serverName
      *    - 执行`this.tlsConfig = tlsConfig`会覆盖先前设置
      * 2. HTTP头处理：
      *    - 双Header容器互斥检测
      */
     public init(
         url!: RequestUrl = RequestUrl.from(''),
-        domin!: String = '',
+        serverName!: String = '',
         tlsConfig!: ?TlsClientConfig = None,
         linderHttpHeader!: ?LinderHttpHeader = None,
         httpHeaders!: ?HttpHeaders = None,
@@ -151,17 +151,17 @@ public class LinderHttp {
         httpsProxy!: String = ''
     ) {
         this.url = url
-        this.tlsConfig.domain = if (domin != '') {
-            domin
+        this.tlsConfig.serverName = if (serverName != '') {
+            serverName
         } else {
-            let tempDomin = match (url) {
+            let tempserverName = match (url) {
                 case RequestUrl.STRING(v) => URL.parse(v).hostName.toString()
                 case RequestUrl.URL(v) => v.hostName.toString()
             }
-            if (tempDomin != '') {
-                tempDomin
+            if (tempserverName != '') {
+                tempserverName
             } else {
-                this.tlsConfig.domain
+                this.tlsConfig.serverName
             }
         }
 
@@ -193,7 +193,7 @@ public class LinderHttp {
 
     /**
      * 设置请求URL并自动更新TLS域名
-     * 如果tlsconfig已设置domin则无操作,否则自动设置
+     * 如果tlsconfig已设置serverName则无操作,否则自动设置
      * @param v 目标URL
      * @return 当前对象（支持链式调用）
      *
@@ -201,8 +201,8 @@ public class LinderHttp {
      */
     public func setUrl(v: RequestUrl): LinderHttp {
         url = v
-        tlsConfig.domain = if (tlsConfig.domain.isSome()) {
-            tlsConfig.domain
+        tlsConfig.serverName = if (tlsConfig.serverName.isSome()) {
+            tlsConfig.serverName
         } else {
             match (url) {
                 case RequestUrl.STRING(v) => URL.parse(v).hostName.toString()
@@ -214,7 +214,7 @@ public class LinderHttp {
 
     /**
      * 设置请求URL并自动更新TLS域名
-     * 如果tlsconfig已设置domin则无操作,否则自动设置
+     * 如果tlsconfig已设置serverName则无操作,否则自动设置
      * @param v 目标URL
      * @return 当前对象（支持链式调用）
      *
@@ -222,8 +222,8 @@ public class LinderHttp {
      */
     public func setUrl(v: String): LinderHttp {
         url = RequestUrl.from(v)
-        tlsConfig.domain = if (tlsConfig.domain.isSome()) {
-            tlsConfig.domain
+        tlsConfig.serverName = if (tlsConfig.serverName.isSome()) {
+            tlsConfig.serverName
         } else {
             match (url) {
                 case RequestUrl.STRING(v) => URL.parse(v).hostName.toString()
@@ -235,7 +235,7 @@ public class LinderHttp {
 
     /**
      * 设置请求URL并自动更新TLS域名
-     * 如果tlsconfig已设置domin则无操作,否则自动设置
+     * 如果tlsconfig已设置serverName则无操作,否则自动设置
      * @param v 目标URL
      * @return 当前对象（支持链式调用）
      *
@@ -243,8 +243,8 @@ public class LinderHttp {
      */
     public func setUrl(v: URL): LinderHttp {
         url = RequestUrl.from(v)
-        tlsConfig.domain = if (tlsConfig.domain.isSome()) {
-            tlsConfig.domain
+        tlsConfig.serverName = if (tlsConfig.serverName.isSome()) {
+            tlsConfig.serverName
         } else {
             match (url) {
                 case RequestUrl.STRING(v) => URL.parse(v).hostName.toString()
@@ -317,8 +317,8 @@ public class LinderHttp {
      * 重要：此设置会被后续setUrl()覆盖，
      * 如需设置请在setUrl()后调用
      */
-    public func setDomin(v: String): LinderHttp {
-        tlsConfig.domain = v
+    public func setserverName(v: String): LinderHttp {
+        tlsConfig.serverName = v
         this
     }
 
