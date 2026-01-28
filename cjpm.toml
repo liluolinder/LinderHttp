@@ -11,8 +11,8 @@
   [package.package-configuration]
 
 [dependencies]
-  stdx_encode = {path = "D:/stdx/stdx_standalone_encode"}
-  stdx_encode_json = {path = "D:/stdx/stdx_standalone_encode_json"}
-  stdx_net = {path = "D:/stdx/stdx_standalone_net"}
-  stdx_serialization = {path = "D:/stdx/stdx_standalone_serialization"}
+  stdx_encode = {path = "D:\\linderSeline\\projects\\Cangjie\\standstdx\\stdx_standalone_encode"}
+  stdx_encode_json = {path = "D:\\linderSeline\\projects\\Cangjie\\standstdx\\stdx_standalone_encode_json"}
+  stdx_net = {path = "D:\\linderSeline\\projects\\Cangjie\\standstdx\\stdx_standalone_net"}
+  stdx_serialization = {path = "D:\\linderSeline\\projects\\Cangjie\\standstdx\\stdx_standalone_serialization"}
   
