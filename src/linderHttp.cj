@@ -581,8 +581,9 @@ public class LinderHttp {
                 }
             }
         } catch (e: Exception) {
-            if (linderIntercept.isSome()) {
-                linderIntercept.getOrThrow().requestError(e)
+            match (linderIntercept) {
+                case Some(intercept) => intercept.requestError(e)
+                case None => throw e
             }
         }
 
@@ -594,15 +595,16 @@ public class LinderHttp {
                 setDefaultHeader()
             }
         } catch (e: Exception) {
-            if (linderIntercept.isSome()) {
-                linderIntercept.getOrThrow().requestError(e)
+            match (linderIntercept) {
+                case Some(intercept) => intercept.requestError(e)
+                case None => throw e
             }
         }   
 
         response.intercept = linderIntercept
 
-        if (linderIntercept.isSome()) {
-            linderIntercept.getOrThrow().response(response)
+        if (let Some(intercept) <- linderIntercept) {
+            intercept.response(response)
         }
         clearBody()
         response
