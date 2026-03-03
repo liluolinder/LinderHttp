@@ -162,19 +162,19 @@ public class LinderHttpResponse {
      * @param conflictMethod 文件冲突处理策略（默认重命名）
      * @Throw 触发异常，详见std.io.* std.fs.*
      * 冲突策略说明：
-     *   - `ConflictMethod.HARMONY`：自动重命名（如file.txt → file(1).txt）
-     *   - `ConflictMethod.OVER_WRITE`：覆盖现有文件
+     *   - `ConflictMethod.Harmony`：自动重命名（如file.txt → file(1).txt）
+     *   - `ConflictMethod.OverWrite`：覆盖现有文件
      *
      */
-    public func getBodyFile(filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.HARMONY) {
-        var exortIntercept: Export2FileIntercept = Export2FileIntercept()
+    public func getBodyFile(filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.Harmony): Unit {
+        var exportIntercept: Export2FileIntercept = Export2FileIntercept()
         if (intercept.isSome()) {
-            exortIntercept.onStartRead = intercept.getOrThrow().onStartRead
-            exortIntercept.onReadProgressUpdate = intercept.getOrThrow().onReadProgressUpdate
-            exortIntercept.onReadEnd = intercept.getOrThrow().onReadEnd
+            exportIntercept.onStartRead = intercept.getOrThrow().onStartRead
+            exportIntercept.onReadProgressUpdate = intercept.getOrThrow().onReadProgressUpdate
+            exportIntercept.onReadEnd = intercept.getOrThrow().onReadEnd
         }
         export2File(content: body.getOrThrow(), filePath: filePath, conflictMethod: conflictMethod,
-            totalSize: bodySize.getOrDefault({=> 0}), intercept: exortIntercept)
+            totalSize: bodySize.getOrDefault({=> 0}), intercept: exportIntercept)
     }
 
     /**
@@ -183,7 +183,7 @@ public class LinderHttpResponse {
      * 输出格式：`HeaderName: [value1,value2]`
      * 适用场景：调试时快速检查响应头
      */
-    public func printHeaders() {
+    public func printHeaders(): Unit {
         headers.iterator()
         for (i in headers) {
             println(i[0] + ':' + i[1].toArray().toString())

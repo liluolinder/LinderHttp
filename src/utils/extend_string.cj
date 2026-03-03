@@ -7,12 +7,12 @@ public interface StringExport {
 }
 
 extend String <: StringExport {
-    public func export2File(filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.HARMONY) {
+    public func export2File(filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.Harmony): Unit {
         export2File(content: this, filePath: filePath, conflictMethod: conflictMethod)
         return
     }
 
-    public func exportJson2File(filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.HARMONY) {
+    public func exportJson2File(filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.Harmony): Unit {
         export2File(content: JsonValue.fromStr(this).toJsonString(), filePath: filePath, conflictMethod: conflictMethod)
         return
     }

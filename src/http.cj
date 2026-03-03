@@ -15,7 +15,7 @@ public class LinderHttp {
      */
     private var linderIntercept: ?LinderIntercept = None
 
-    private var httpClinet: ?Client = None
+    private var httpClient: ?Client = None
     /**
      * 目标请求URL
      * 默认值：空字符串
@@ -35,7 +35,7 @@ public class LinderHttp {
      *
      * 默认值：`defaultTSLConfig()`生成的基准配置
      * 特殊机制：`setUrl()`会重置serverName为URL的hostName，
-     * 需显式调用`setserverName()`覆盖此行为
+     * 需显式调用`setServerName()`覆盖此行为
      */
     public var tlsConfig: TlsClientConfig = defaultTSLConfig()
 
@@ -97,7 +97,8 @@ public class LinderHttp {
      */
     public var httpsProxy: String = ''
 
-    public init() {}
+   // public init() {}
+    
     /**
      * 初始化
      *
@@ -133,7 +134,7 @@ public class LinderHttp {
      *    - 双Header容器互斥检测
      */
     public init(
-        url!: RequestUrl = RequestUrl.from(''),
+        url!: RequestUrl = RequestUrl.from('') ,
         serverName!: String = '',
         tlsConfig!: ?TlsClientConfig = None,
         linderHttpHeader!: ?LinderHttpHeader = None,
@@ -154,12 +155,12 @@ public class LinderHttp {
         this.tlsConfig.serverName = if (serverName != '') {
             serverName
         } else {
-            let tempserverName = match (url) {
+            let tempServerName = match (url) {
                 case RequestUrl.STRING(v) => URL.parse(v).hostName.toString()
                 case RequestUrl.URL(v) => v.hostName.toString()
             }
-            if (tempserverName != '') {
-                tempserverName
+            if (tempServerName != '') {
+                tempServerName
             } else {
                 this.tlsConfig.serverName
             }
@@ -286,7 +287,7 @@ public class LinderHttp {
      * 内部自动转换为字符串形式存储，
      * 优先使用此方法保证方法名合法性
      */
-    public func setMehod(v: RequestMethod): LinderHttp {
+    public func setMethod(v: RequestMethod): LinderHttp {
         method = v.toString()
         this
     }
@@ -299,7 +300,7 @@ public class LinderHttp {
      * 注意：需自行确保方法名符合HTTP规范，
      * 非标准方法可能导致请求失败
      */
-    public func setMehod(v: String): LinderHttp {
+    public func setMethod(v: String): LinderHttp {
         method = v
         this
     }
@@ -317,7 +318,7 @@ public class LinderHttp {
      * 重要：此设置会被后续setUrl()覆盖，
      * 如需设置请在setUrl()后调用
      */
-    public func setserverName(v: String): LinderHttp {
+    public func setServerName(v: String): LinderHttp {
         tlsConfig.serverName = v
         this
     }
@@ -494,17 +495,17 @@ public class LinderHttp {
      * 取消请求
      * @return 当前对象（支持链式调用）
      */
-    public func destory(): LinderHttp {
-        if (!httpClinet.isNone()) {
-            httpClinet.getOrThrow().close()
-            httpClinet = None
+    public func destroy(): LinderHttp {
+        if (!httpClient.isNone()) {
+            httpClient.getOrThrow().close()
+            httpClient = None
         }
         this
     }
 
     private func generateURL(originalURL: URL): URL {
         var _originalURL = originalURL
-        if (let Some(RequestBody.URLENCODED(v)) <- requestBody) {
+        if (let Some(RequestBody.UrlEncoded(v)) <- requestBody) {
             _originalURL = _originalURL.replace(query: v.toEncodeString())
         }
 
@@ -548,32 +549,32 @@ public class LinderHttp {
 
             if (!requestBody.isNone()) {
                 match (requestBody.getOrThrow()) {
-                    case RequestBody.STRING(v) =>
+                    case RequestBody.String(v) =>
                         requestBuilder.body(v)
                         if (httpHeader.get('content-type').isEmpty()) {
                             httpHeader.set(key: "content-type", value: "text/xml")
                         }
-                    case RequestBody.BYTE_ARRAY(v) =>
+                    case RequestBody.ByteArray(v) =>
                         requestBuilder.body(v)
                         if (httpHeader.get('content-type').isEmpty()) {
                             httpHeader.set(key: "content-type", value: "application/octet-stream")
                         }
-                    case RequestBody.INPUT_STREAM(v) =>
+                    case RequestBody.InputStream(v) =>
                         requestBuilder.body(v)
                         if (httpHeader.get('content-type').isEmpty()) {
                             httpHeader.set(key: "content-type", value: "application/octet-stream")
                         }
-                    case RequestBody.URLENCODED(v) =>
+                    case RequestBody.UrlEncoded(v) =>
                         requestBuilder.body(v.toEncodeString())
                         if (httpHeader.get('content-type').isEmpty()) {
                             httpHeader.set(key: "content-type", value: "application/x-www-form-urlencoded")
                         }
-                    case RequestBody.OBJECT(v) =>
+                    case RequestBody.Object(v) =>
                         requestBuilder.body(v.toJson().toString())
                         if (httpHeader.get('content-type').isEmpty()) {
                             httpHeader.set(key: "content-type", value: "application/json")
                         }
-                    case RequestBody.JSON(v) =>
+                    case RequestBody.Json(v) =>
                         requestBuilder.body(v.toString())
                         if (httpHeader.get('content-type').isEmpty()) {
                             httpHeader.set(key: "content-type", value: "application/json")

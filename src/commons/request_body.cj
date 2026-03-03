@@ -1,32 +1,32 @@
 package linderHttp.commons
 
 public enum RequestBody {
-    | STRING(String)
-    | INPUT_STREAM(InputStream)
-    | BYTE_ARRAY(Array<Byte>)
-    | OBJECT(DataModel)
-    | JSON(JsonObject)
-    | URLENCODED(Form)
+    | String(String)
+    | InputStream(InputStream)
+    | ByteArray(Array<Byte>)
+    | Object(DataModel)
+    | Json(JsonObject)
+    | UrlEncoded(Form)
 
     public static func from(v: String): RequestBody {
-        RequestBody.STRING(v)
+        RequestBody.String(v)
     }
 
     public static func from(v: InputStream): RequestBody {
-        RequestBody.INPUT_STREAM(v)
+        RequestBody.InputStream(v)
     }
 
     public static func from(v: Array<Byte>): RequestBody {
-        RequestBody.BYTE_ARRAY(v)
+        RequestBody.ByteArray(v)
     }
 
     public static func from(v: Form): RequestBody {
-        RequestBody.URLENCODED(v)
+        RequestBody.UrlEncoded(v)
     }
     public static func from(v: DataModel): RequestBody {
-        RequestBody.OBJECT(v)
+        RequestBody.Object(v)
     }
     public static func from(v: JsonObject): RequestBody {
-        RequestBody.JSON(v)
+        RequestBody.Json(v)
     }
 }

@@ -111,7 +111,7 @@ public class LinderHttpHeader {
         httpHeader.isEmpty()
     }
 
-    public func printlnAll() {
+    public func printlnAll(): Unit {
         for (i in httpHeader) {
             i[0] + " " + i[1].toArray().toString() |> println
         }

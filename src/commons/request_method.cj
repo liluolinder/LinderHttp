@@ -11,14 +11,14 @@ public enum RequestMethod <: ToString {
     | OPTION
     | LINK
     | UNLINK
-    | PUGRE
+    | PURGE
     | LOCK
     | UNLOCK
     | PROPFIND
     | VIEW
     | CUSTOM(String)
 
-    public func toString() {
+    public func toString(): String {
         match (this) {
             case GET => "GET"
             case POST => "POST"
@@ -30,7 +30,7 @@ public enum RequestMethod <: ToString {
             case OPTION => "OPTION"
             case LINK => "LINK"
             case UNLINK => "UNLINK"
-            case PUGRE => "PUGRE"
+            case PURGE => "PURGE"
             case LOCK => "LOCK"
             case UNLOCK => "UNLOCK"
             case PROPFIND => "PROPFIND"

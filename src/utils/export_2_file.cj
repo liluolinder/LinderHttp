@@ -9,14 +9,14 @@ package linderHttp.utils
  *
  * @param content     要写入的字符串内容，不可为空。
  * @param filePath    目标文件路径（包含文件名和扩展名），不可为空。
- * @param conflictMethod 文件冲突解决策略，默认为`ConflictMethod.HARMONY`。
+ * @param conflictMethod 文件冲突解决策略，默认为`ConflictMethod.Harmony`。
  */
-public func export2File(content!: String, filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.HARMONY) {
+public func export2File(content!: String, filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.Harmony): Unit {
     var _filePath = filePath.normalize()
     var _fileName = filePath.fileName
 
     match (conflictMethod) {
-        case ConflictMethod.HARMONY =>
+        case ConflictMethod.Harmony =>
             let dir: Array<FileInfo> = Directory.readFrom(filePath.parent)
             let files = dir.map({value => value.name})
             if (files.contains(_fileName)) {
@@ -30,7 +30,7 @@ public func export2File(content!: String, filePath!: Path, conflictMethod!: Conf
                 }
                 _filePath = filePath.parent.join(Path(_fileName))
             }
-        case ConflictMethod.OVER_WRITE => _filePath = _filePath
+        case ConflictMethod.OverWrite => _filePath = _filePath
     }
     let file = File(_filePath, OpenMode.Write)
     file.write(content.toArray())
@@ -50,13 +50,13 @@ public func export2File(content!: String, filePath!: Path, conflictMethod!: Conf
  * @param intercept  读取回调拦截函数。
  */
 public func export2File(content!: InputStream, filePath!: Path,
-    conflictMethod!: ConflictMethod = ConflictMethod.HARMONY, totalSize!: Int64,
-    intercept!: ?Export2FileIntercept = None) {
+    conflictMethod!: ConflictMethod = ConflictMethod.Harmony, totalSize!: Int64,
+    intercept!: ?Export2FileIntercept = None): Unit {
     var _filePath = filePath.normalize()
     var _fileName = filePath.fileName
 
     match (conflictMethod) {
-        case ConflictMethod.HARMONY =>
+        case ConflictMethod.Harmony =>
             let dir: Array<FileInfo> = Directory.readFrom(filePath.parent)
             let files = dir.map({value => value.name})
             if (files.contains(_fileName)) {
@@ -72,7 +72,7 @@ public func export2File(content!: InputStream, filePath!: Path,
                 _filePath = filePath.parent.join(Path(_fileName))
             }
 
-        case ConflictMethod.OVER_WRITE => _filePath = _filePath
+        case ConflictMethod.OverWrite => _filePath = _filePath
     }
 
     if (intercept.isSome()) {
@@ -82,14 +82,14 @@ public func export2File(content!: InputStream, filePath!: Path,
     let file = File(_filePath, OpenMode.Write)
     let bitArray: Array<Byte> = Array<Byte>(4096, repeat: 0)
     var readSize = content.read(bitArray)
-    var hasReadedSize = readSize
+    var hasReadSize = readSize
     do {
         if (intercept.isSome()) {
-            intercept.getOrThrow().onReadProgressUpdate(readSize, hasReadedSize, totalSize)
+            intercept.getOrThrow().onReadProgressUpdate(readSize, hasReadSize, totalSize)
         }
         file.write(bitArray[0..readSize])
         readSize = content.read(bitArray)
-        hasReadedSize += readSize
+        hasReadSize += readSize
     } while (readSize > 0)
 
     if (intercept.isSome()) {
