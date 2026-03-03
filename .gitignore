@@ -3,6 +3,7 @@
 .idea/
 .cache/
 .output/
+.cjpm/
 .VScodeCounter/
 
 # cangjie
