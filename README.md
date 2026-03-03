@@ -14,7 +14,7 @@ LinderHttp 是一个轻量级 HTTP 客户端库，提供请求构建、响应解
 ## 📚 API 说明
 
 所有核心接口、枚举和工具函数详见：\
-👉  [API参考](./doc/api.md)
+👉  [API参考](./doc/feature_api.md)
 
 ## 🍴 食用方式
 

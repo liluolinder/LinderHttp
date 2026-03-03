@@ -101,7 +101,7 @@ RequestBody.from(v: JsonObject)
 | `OPTION` | "OPTION" |
 | `LINK` | "LINK" |
 | `UNLINK` | "UNLINK" |
-| `PUGRE` | "PUGRE" |
+| `PURGE` | "PURGE" |
 | `LOCK` | "LOCK" |
 | `UNLOCK` | "UNLOCK" |
 | `PROPFIND` | "PROPFIND" |
@@ -195,7 +195,7 @@ HTTP客户端主类，支持链式调用。
 ```Cangjie
 public init(
     url!: RequestUrl,
-    domin!: String = "",
+    serverName!: String = "",
     tlsConfig!: ?TlsClientConfig = None,
     linderHttpHeader!: ?LinderHttpHeader = None,
     httpHeaders!: ?HttpHeaders = None,
@@ -266,7 +266,7 @@ http.setHeader(linderHeaders)
 
 ---
 
-##### `setMehod(v: RequestMethod/String): LinderHttp`
+##### `setMethod(v: RequestMethod/String): LinderHttp`
 设置HTTP请求方法。
 
 **参数：**
@@ -284,10 +284,10 @@ http.setHeader(linderHeaders)
 **示例：**
 ```Cangjie
 // 使用枚举
-http.setMehod(RequestMethod.POST)
+http.setMethod(RequestMethod.POST)
 
 // 使用自定义方法
-http.setMehod("CUSTOM_METHOD")
+http.setMethod("CUSTOM_METHOD")
 ```
 
 ---
@@ -313,7 +313,7 @@ http.setIntercept(intercept)
 
 ---
 
-##### `setDomin(v: String): LinderHttp`
+##### `setServerName(v: String): LinderHttp`
 自定义TLS握手域名。
 
 **参数：**
@@ -326,7 +326,7 @@ http.setIntercept(intercept)
 **示例：**
 ```Cangjie
 http.setUrl("https://api.example.com")
-    .setDomin("custom-domain.com") // 覆盖URL解析的域名
+    .setServerName("custom-domain.com") // 覆盖URL解析的域名
 ```
 
 ---
@@ -527,12 +527,12 @@ http.setDefaultHeader() // 重置为默认浏览器头部
 
 ---
 
-##### `destory(): LinderHttp`
+##### `destroy(): LinderHttp`
 取消请求并清理资源。
 
 **说明：**
 - 如果HTTP客户端已创建，则关闭连接
-- 将`httpClinet`属性设置为`None`
+- 将`httpClient`属性设置为`None`
 - 用于手动释放网络连接资源
 
 **注意事项：**
@@ -541,7 +541,7 @@ http.setDefaultHeader() // 重置为默认浏览器头部
 **示例：**
 ```Cangjie
 http.send()
-    .destory() // 关闭连接，释放资源
+    .destroy() // 关闭连接，释放资源
 ```
 
 ### 4.1.4 发送请求
@@ -1013,10 +1013,9 @@ public interface LinderIntercept {
     func requestError(error: Exception): Unit
     func response(res: LinderHttpResponse): Unit
     func responseError(error: Exception): Unit
-    func onStartRead(totalSize: UInt64): Unit
-    func onReadProgressUpdate(singleReadSize: UInt64, hasReadSize: UInt64, totalSize: UInt64): Unit
-    func onReadEnd(): Unit
-
+    func onStartRead(totalSize: Int64): Unit
+    func onReadProgressUpdate(singleReadSize: Int64, hasReadSize: Int64, totalSize: Int64): Unit
+    func onReadEnd(path: ?Path): Unit
 }
 ```
 
@@ -1121,7 +1120,7 @@ HTTP请求参数组装完成，即将发起网络请求前
 ---
 
 
-##### 6. `onReadEnd(): Unit`
+##### 7. `onReadEnd(path: ?Path): Unit`
 **输入流读取完成时的回调函数**
 
 ##### 触发时机
