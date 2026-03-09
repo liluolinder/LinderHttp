@@ -17,15 +17,19 @@
     - [4.1.2 构造方法](#412-构造方法)
     - [4.1.3 链式配置方法](#413-链式配置方法)
     - [4.1.4 发送请求](#414-发送请求)
-  - [4.2 LinderHttpHeader](#42-linderhttpheader)
+  - [4.2 MultipartFormData](#42-multipartformdata)
     - [4.2.1 构造方法](#421-构造方法)
     - [4.2.2 方法](#422-方法)
-  - [4.3 LinderHttpResponse](#43-linderhttpresponse)
-    - [4.3.1 属性](#431-属性)
-    - [4.3.2 计算属性](#432-计算属性)
-    - [4.3.3 方法](#433-方法)
-  - [4.4 LinderIntercept](#44-linderintercept)
-    - [4.4.1 Intercept 实现类](#441-intercept-实现类)
+    - [4.2.3 使用示例](#423-使用示例)
+  - [4.3 LinderHttpHeader](#43-linderhttpheader)
+    - [4.3.1 构造方法](#431-构造方法)
+    - [4.3.2 方法](#432-方法)
+  - [4.4 LinderHttpResponse](#44-linderhttpresponse)
+    - [4.4.1 属性](#441-属性)
+    - [4.4.2 计算属性](#442-计算属性)
+    - [4.4.3 方法](#443-方法)
+  - [4.5 LinderIntercept](#45-linderintercept)
+    - [4.5.1 Intercept 实现类](#451-intercept-实现类)
 
 ---
 
@@ -62,26 +66,30 @@
 | `OBJECT(DataModel)` | 数据模型对象 |
 | `JSON(JsonObject)` | JSON对象 |
 | `URLENCODED(Form)` | URL编码表单数据 |
+| `MULTIPART(MultipartFormData)` | Multipart表单数据（文件上传） |
 
 **静态构造方法：**
 ```Cangjie
 // STRING 类型请求体
-RequestBody.from(v: String)  
-   
-// INPUT_STREAM 类型请求体   
-RequestBody.from(v: InputStream)   
+RequestBody.from(v: String)
+
+// INPUT_STREAM 类型请求体
+RequestBody.from(v: InputStream)
 
 // BYTE_ARRAY 类型请求体
-RequestBody.from(v: Array<Byte>)   
+RequestBody.from(v: Array<Byte>)
 
 // URLENCODED 类型请求体
-RequestBody.from(v: Form)          
+RequestBody.from(v: Form)
 
 // OBJECT 类型请求体
-RequestBody.from(v: DataModel)     
+RequestBody.from(v: DataModel)
 
 // JSON 类型请求体
 RequestBody.from(v: JsonObject)
+
+// MULTIPART 类型请求体
+RequestBody.from(v: MultipartFormData)
 ```
 
 ---
@@ -379,7 +387,7 @@ http.setWriteTimeout(Duration.second * 30) // 设置为30秒
 
 ---
 
-##### `setBody(v: RequestBody/String/InputStream/Array<Byte>/DataModel/JsonObject/Form): LinderHttp`
+##### `setBody(v: RequestBody/String/InputStream/Array<Byte>/DataModel/JsonObject/Form/MultipartFormData): LinderHttp`
 设置请求附带数据。
 
 **参数：**
@@ -393,6 +401,7 @@ http.setWriteTimeout(Duration.second * 30) // 设置为30秒
 5. `DataModel`：数据模型对象，自动包装为`RequestBody.OBJECT`
 6. `JsonObject`：JSON对象，自动包装为`RequestBody.JSON`
 7. `Form`：表单数据，自动包装为`RequestBody.URLENCODED`
+8. `MultipartFormData`：Multipart表单数据，自动包装为`RequestBody.MULTIPART`
 
 **默认值：**
 - `None`（不附带数据）
@@ -407,6 +416,12 @@ var form = Form()
 form.add("username", "admin")
 form.add("password", "123456")
 http.setBody(form)
+
+// Multipart文件上传
+var multipart = MultipartFormData()
+multipart.addText("username", "admin")
+    .addFile("avatar", "photo.jpg", fileBytes)
+http.setBody(multipart)
 ```
 
 ---
@@ -573,6 +588,7 @@ http.send()
    - `URLENCODED` → `"application/x-www-form-urlencoded"`
    - `OBJECT` → `"application/json"`
    - `JSON` → `"application/json"`
+   - `MULTIPART` → `"multipart/form-data; boundary=xxxxx"`（自动生成boundary）
 5. **发送请求**：通过HTTP客户端发送请求并接收响应
 6. **拦截器后处理**：如果设置了`linderIntercept`，调用`response()`方法
 
@@ -588,15 +604,192 @@ http.send()
 
 ---
 
-### 4.2 LinderHttpHeader
-HTTP头部管理类。
+### 4.2 MultipartFormData
+Multipart/form-data请求体构建类，用于文件上传场景。
 
 #### 4.2.1 构造方法
+```Cangjie
+public init(boundary!: String = "")
+```
+
+**参数：**
+- `boundary` - 可选的分隔符，如果不提供则自动生成
+
+**说明：**
+- 创建MultipartFormData实例
+- boundary用于分隔不同的表单项
+- 自动生成的boundary格式：`----LinderHttpBoundary{时间戳}{随机数}`
+
+#### 4.2.2 方法
+
+##### `getBoundary(): String`
+获取boundary分隔符。
+
+**返回值：**
+- `String` - 当前使用的boundary字符串
+
+---
+
+##### `addText(name: String, value: String): MultipartFormData`
+添加文本字段。
+
+**参数：**
+- `name` - 字段名
+- `value` - 字段值
+
+**返回值：**
+- `MultipartFormData` - 当前对象（支持链式调用）
+
+**示例：**
+```Cangjie
+multipart.addText("username", "admin")
+    .addText("description", "This is a test")
+```
+
+---
+
+##### `addFile(name: String, filename: String, content: Array<Byte>): MultipartFormData`
+添加文件字段（字节数组）。
+
+**参数：**
+- `name` - 字段名
+- `filename` - 文件名
+- `content` - 文件内容（字节数组）
+
+**返回值：**
+- `MultipartFormData` - 当前对象（支持链式调用）
+
+**示例：**
+```Cangjie
+// 从文件读取字节数组
+let fileBytes = File.readAllBytes(Path("photo.jpg"))
+multipart.addFile("avatar", "photo.jpg", fileBytes)
+```
+
+---
+
+##### `addFileStream(name: String, filename: String, stream: InputStream): MultipartFormData`
+添加文件字段（输入流）。
+
+**参数：**
+- `name` - 字段名
+- `filename` - 文件名
+- `stream` - 文件输入流
+
+**返回值：**
+- `MultipartFormData` - 当前对象（支持链式调用）
+
+**示例：**
+```Cangjie
+let stream = File.openRead(Path("document.pdf"))
+multipart.addFileStream("document", "document.pdf", stream)
+```
+
+---
+
+##### `getParts(): Array<MultipartPart>`
+获取所有part。
+
+**返回值：**
+- `Array<MultipartPart>` - 所有表单项数组
+
+---
+
+##### `clear(): Unit`
+清空所有part。
+
+---
+
+##### `build(): Array<Byte>`
+构建multipart/form-data格式的字节数组。
+
+**返回值：**
+- `Array<Byte>` - 构建好的字节数组，可直接作为请求体发送
+
+**说明：**
+- 按照multipart/form-data规范构建请求体
+- 自动添加boundary分隔符
+- 自动添加Content-Disposition头部
+- 文件字段自动添加Content-Type: application/octet-stream
+
+---
+
+##### `getContentType(): String`
+获取Content-Type头部值。
+
+**返回值：**
+- `String` - 格式为`multipart/form-data; boundary=xxxxx`
+
+**说明：**
+- 用于设置HTTP请求的Content-Type头部
+- 包含boundary信息，服务器需要此信息解析请求体
+
+#### 4.2.3 使用示例
+
+**基础文件上传：**
+```Cangjie
+// 创建MultipartFormData实例
+var multipart = MultipartFormData()
+
+// 添加文本字段
+multipart.addText("username", "admin")
+multipart.addText("password", "123456")
+
+// 添加文件
+let fileBytes = File.readAllBytes(Path("avatar.jpg"))
+multipart.addFile("avatar", "avatar.jpg", fileBytes)
+
+// 发送请求
+var http = LinderHttp()
+http.setUrl("https://api.example.com/upload")
+    .setMethod(RequestMethod.POST)
+    .setBody(multipart)
+    .send()
+```
+
+**多文件上传：**
+```Cangjie
+var multipart = MultipartFormData()
+
+// 添加多个文件
+multipart.addFile("file1", "document1.pdf", File.readAllBytes(Path("doc1.pdf")))
+    .addFile("file2", "document2.pdf", File.readAllBytes(Path("doc2.pdf")))
+    .addFile("file3", "image.jpg", File.readAllBytes(Path("photo.jpg")))
+
+// 发送请求
+var http = LinderHttp()
+http.setUrl("https://api.example.com/upload-multiple")
+    .setMethod(RequestMethod.POST)
+    .setBody(multipart)
+    .send()
+```
+
+**使用输入流上传大文件：**
+```Cangjie
+var multipart = MultipartFormData()
+
+// 使用输入流，避免一次性加载大文件到内存
+let stream = File.openRead(Path("large-file.zip"))
+multipart.addFileStream("file", "large-file.zip", stream)
+
+var http = LinderHttp()
+http.setUrl("https://api.example.com/upload-large")
+    .setMethod(RequestMethod.POST)
+    .setBody(multipart)
+    .send()
+```
+
+---
+
+### 4.3 LinderHttpHeader
+HTTP头部管理类。
+
+#### 4.3.1 构造方法
 ```Cangjie
 public init()  // 预置浏览器头部信息
 ```
 
-#### 4.2.2 方法
+#### 4.3.2 方法
 
 ##### `setALL(v: HttpHeaders): LinderHttpHeader`
 
@@ -754,10 +947,10 @@ public init()  // 预置浏览器头部信息
 
 ---
 
-### 4.3 LinderHttpResponse
+### 4.4 LinderHttpResponse
 HTTP响应封装类。
 
-#### 4.3.1 属性
+#### 4.4.1 属性
 | 属性名 | 类型 | 说明 |
 |--------|------|------|
 | `body` | `?InputStream` | 响应体数据流（只能读取一次） |
@@ -768,7 +961,7 @@ HTTP响应封装类。
 | `request` | `?HttpRequest` | 关联的请求对象 |
 | `intercept` | `?LinderIntercept` | 拦截器 |
 
-#### 4.3.2 Prop
+#### 4.4.2 Prop
 
 ##### `location: ?Array<String>`
 
@@ -832,7 +1025,7 @@ HTTP响应封装类。
 - `None` - 表示响应中不包含`Set-Cookie`头部
 - `Some(Array<String>)` - 包含1-N个Cookie字符串的数组
 
-#### 4.3.3 方法
+#### 4.4.3 方法
 
 ##### `getHeader(header: String): ?Array<String>`
 
@@ -1004,7 +1197,7 @@ response.getBodyFile(Path("downloads/file.txt"), ConflictMethod.OVER_WRITE)
 
 ---
 
-### 4.4 LinderIntercept
+### 4.5 LinderIntercept
 HTTP请求/响应拦截器接口。
 
 ```Cangjie
@@ -1133,7 +1326,7 @@ HTTP请求参数组装完成，即将发起网络请求前
 
 ---
 
-###### 4.4.1 Intercept 实现类
+###### 4.5.1 Intercept 实现类
 ```Cangjie
 public class Intercept <: LinderIntercept {
      public Intercept(

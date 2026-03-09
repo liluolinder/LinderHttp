@@ -7,6 +7,7 @@ public enum RequestBody {
     | Object(DataModel)
     | Json(JsonObject)
     | UrlEncoded(Form)
+    | Multipart(MultipartFormData)
 
     public static func from(v: String): RequestBody {
         RequestBody.String(v)
@@ -28,5 +29,9 @@ public enum RequestBody {
     }
     public static func from(v: JsonObject): RequestBody {
         RequestBody.Json(v)
+    }
+
+    public static func from(v: MultipartFormData): RequestBody {
+        RequestBody.Multipart(v)
     }
 }

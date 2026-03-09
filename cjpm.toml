@@ -2,7 +2,7 @@
   cjc-version = "1.1.0"
   name = "linderHttp"
   description = "LinderHttp 是一个轻量级 HTTP 客户端库，提供请求构建、响应解析、拦截器等核心功能，帮助开发者高效处理网络请求。"
-  version = "0.1.1"
+  version = "0.1.2"
   target-dir = ""
   authors = ["linderSeline"]
   repository = "https://gitcode.com/LiquidStudio/LinderHttp"
@@ -11,7 +11,7 @@
   output-type = "static"
   override-compile-option = ""
   link-option = ""
-   include = ["src"]
+  include = ["src"]
 
                               
 
@@ -26,3 +26,8 @@ path-option = ["${AARCH64_LIBS}", "${AARCH64_MACRO_LIBS}", "${AARCH64_KIT_LIBS}"
 compile-option = "-B \"${DEVECO_CANGJIE_HOME}/compiler/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/x86_64-linux-ohos\" -L \"${DEVECO_CANGJIE_HOME}/build/linux_ohos_x86_64_cjnative/openssl\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
 [target.x86_64-linux-ohos.bin-dependencies]
 path-option = ["${X86_64_OHOS_LIBS}", "${X86_64_OHOS_MACRO_LIBS}", "${X86_64_OHOS_KIT_LIBS}", "${CANGJIE_STDX_PATH}/linux_ohos_x86_64_cjnative/dynamic/stdx"]
+[target.x86_64-w64-mingw32]
+compile-option = "--cfg \"ohos=false\""
+link-option = "-lcrypt32"
+[target.x86_64-w64-mingw32.bin-dependencies]
+path-option = ["${CANGJIE_STDX_PATH}/windows_x86_64_cjnative/static/stdx"]

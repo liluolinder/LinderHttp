@@ -424,6 +424,16 @@ public class LinderHttp {
     }
 
     /**
+     * 设置请求附带数据
+     * @param v MultipartFormData类型数据
+     * @return 当前对象（支持链式调用）
+     */
+    public func setBody(v: MultipartFormData): LinderHttp {
+        requestBody = RequestBody.from(v)
+        this
+    }
+
+    /**
      * 配置客户端 HTTP/2 流控窗口初始值
      * @param v UInt32
      * @return 当前对象（支持链式调用）
@@ -578,6 +588,11 @@ public class LinderHttp {
                         requestBuilder.body(v.toString())
                         if (httpHeader.get('content-type').isEmpty()) {
                             httpHeader.set(key: "content-type", value: "application/json")
+                        }
+                    case RequestBody.Multipart(v) =>
+                        requestBuilder.body(v.build())
+                        if (httpHeader.get('content-type').isEmpty()) {
+                            httpHeader.set(key: "content-type", value: v.getContentType())
                         }
                 }
             }

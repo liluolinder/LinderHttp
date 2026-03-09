@@ -5,6 +5,7 @@
 .output/
 .cjpm/
 .VScodeCounter/
+cangjieDoc/
 
 # cangjie
 build/
