@@ -1,6 +1,7 @@
 package linderHttp
 
 import std.collection.*
+import stdx.encoding.url.*
 
 public class LinderHttp {
     /**
@@ -530,8 +531,29 @@ public class LinderHttp {
         this
     }
 
+    /**
+     * 对URL的路径和查询参数进行编码
+     * @param originalURL 原始URL对象
+     * @return 编码后的URL对象
+     * 
+     * 说明：此方法会对URL中的路径和查询参数进行编码，
+     * 确保特殊字符（如中文、空格等）被正确编码
+     */
     private func generateURL(originalURL: URL): URL {
         var _originalURL = originalURL
+
+        // 对路径进行编码（如果路径包含非ASCII字符或特殊字符）
+        let pathString = _originalURL.path.toString()
+        let encodedPath = URL.encode(pathString)
+        _originalURL = _originalURL.replace(path: encodedPath)
+
+        // 对查询参数进行编码（如果存在）
+        if (let Some(query) <- _originalURL.query) {
+            let encodedQuery = URL.encode(query.toString())
+            _originalURL = _originalURL.replace(query: encodedQuery)
+        }
+
+        // 如果有UrlEncoded请求体，替换查询参数
         if (let Some(RequestBody.UrlEncoded(v)) <- requestBody) {
             _originalURL = _originalURL.replace(query: v.toEncodeString())
         }
@@ -573,6 +595,11 @@ public class LinderHttp {
                 case RequestUrl.URL(v) => v
                 case RequestUrl.STRING(v) => URL.parse(v)
             } |> generateURL).setHeaders(httpHeader.httpHeader)
+
+            match (url) {
+                case RequestUrl.URL(v) => v
+                case RequestUrl.STRING(v) => URL.parse(v)
+            } |> generateURL |> println
 
             if (!requestBody.isNone()) {
                 match (requestBody.getOrThrow()) {

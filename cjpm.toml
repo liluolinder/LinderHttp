@@ -2,7 +2,7 @@
   cjc-version = "1.1.0"
   name = "linderHttp"
   description = "LinderHttp 是一个轻量级 HTTP 客户端库，提供请求构建、响应解析、拦截器等核心功能，帮助开发者高效处理网络请求。"
-  version = "0.1.2"
+  version = "0.2.0"
   target-dir = ""
   authors = ["linderSeline"]
   repository = "https://gitcode.com/LiquidStudio/LinderHttp"
