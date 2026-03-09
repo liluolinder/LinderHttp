@@ -1,5 +1,7 @@
 package linderHttp
 
+import std.collection.*
+
 public class LinderHttp {
     /**
      * HTTP客户端构建器实例
@@ -276,6 +278,21 @@ public class LinderHttp {
      */
     public func setHeader(v: LinderHttpHeader): LinderHttp {
         httpHeader = (v)
+        this
+    }
+
+    /**
+     * 设置HTTP头部（从HashMap批量设置）
+     * @param v HashMap<String, String>类型的键值对集合
+     * @return 当前对象（支持链式调用）
+     *
+     * 说明：遍历HashMap中的所有键值对，逐个添加到HTTP头部
+     * 注意：如果键已存在，将覆盖原有值
+     */
+    public func setHeader(v: HashMap<String, String>): LinderHttp {
+        for ((key, value) in v) {
+            httpHeader.set(key: key, value: value)
+        }
         this
     }
 
