@@ -596,11 +596,6 @@ public class LinderHttp {
                 case RequestUrl.STRING(v) => URL.parse(v)
             } |> generateURL).setHeaders(httpHeader.httpHeader)
 
-            match (url) {
-                case RequestUrl.URL(v) => v
-                case RequestUrl.STRING(v) => URL.parse(v)
-            } |> generateURL |> println
-
             if (!requestBody.isNone()) {
                 match (requestBody.getOrThrow()) {
                     case RequestBody.String(v) =>
