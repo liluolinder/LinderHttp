@@ -540,25 +540,26 @@ public class LinderHttp {
      * 确保特殊字符（如中文、空格等）被正确编码
      */
     private func generateURL(originalURL: URL): URL {
-        var _originalURL = originalURL
+        // var _originalURL = originalURL
 
-        // 对路径进行编码（如果路径包含非ASCII字符或特殊字符）
-        let pathString = _originalURL.path.toString()
-        let encodedPath = URL.encode(pathString)
-        _originalURL = _originalURL.replace(path: encodedPath)
+        // // 对路径进行编码（如果路径包含非ASCII字符或特殊字符）
+        // let pathString = _originalURL.path.toString()
+        // let encodedPath = URL.encode(pathString)
+        // _originalURL = _originalURL.replace(path: encodedPath)
 
-        // 对查询参数进行编码（如果存在）
-        if (let Some(query) <- _originalURL.query) {
-            let encodedQuery = URL.encode(query.toString())
-            _originalURL = _originalURL.replace(query: encodedQuery)
-        }
+        // // 对查询参数进行编码（如果存在）
+        // if (let Some(query) <- _originalURL.query) {
+        //     let encodedQuery = URL.encode(query.toString())
+        //     _originalURL = _originalURL.replace(query: encodedQuery)
+        // }
 
-        // 如果有UrlEncoded请求体，替换查询参数
-        if (let Some(RequestBody.UrlEncoded(v)) <- requestBody) {
-            _originalURL = _originalURL.replace(query: v.toEncodeString())
-        }
+        // // 如果有UrlEncoded请求体，替换查询参数
+        // if (let Some(RequestBody.UrlEncoded(v)) <- requestBody) {
+        //     _originalURL = _originalURL.replace(query: v.toEncodeString())
+        // }
 
-        _originalURL
+        // _originalURL
+        originalURL
     }
 
     /**
