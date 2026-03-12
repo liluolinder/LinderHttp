@@ -12,13 +12,13 @@ public class LinderHttp {
      */
     private var httpClientBuilder: ClientBuilder = ClientBuilder()
 
+    private var httpClient: ?Client = None
+
     /**
      * HTTP拦截器
      * 默认值：`None`（未初始化状态）
      */
-    private var linderIntercept: ?LinderIntercept = None
-
-    private var httpClient: ?Client = None
+    private var interceptor: ?Interceptor = None
     /**
      * 目标请求URL
      * 默认值：空字符串
@@ -115,7 +115,7 @@ public class LinderHttp {
      * @param linderHttpHeader 库专属HTTP头容器
      * @param httpHeaders 通用HTTP头容器
      *     - 互斥约束：linderHttpHeader与httpHeaders不可同时设置，否则抛出IllegalArgumentException
-     * @param linderIntercept 拦截器 默认None 需要传入继承LinderIntercept的对象
+     * @param interceptor HTTP拦截器，默认None
      * @param method 请求方法，默认GET
      * @param requestBody 请求附带数据，默认None
      * @param autoRedirect 是否自动重定向，默认true
@@ -142,7 +142,7 @@ public class LinderHttp {
         tlsConfig!: ?TlsClientConfig = None,
         linderHttpHeader!: ?LinderHttpHeader = None,
         httpHeaders!: ?HttpHeaders = None,
-        intercept!: ?LinderIntercept = None,
+        interceptor!: ?Interceptor = None,
         method!: RequestMethod = RequestMethod.GET,
         requestBody!: ?RequestBody = None,
         autoRedirect!: Bool = true,
@@ -183,7 +183,7 @@ public class LinderHttp {
         } else {
             throw IllegalArgumentException('不可同时设置双Headers')
         }
-        this.linderIntercept = intercept
+        this.interceptor = interceptor
         this.method = method.toString()
         this.autoRedirect = autoRedirect
         this.readTimeout = readTimeout
@@ -323,8 +323,13 @@ public class LinderHttp {
         this
     }
 
-    public func setIntercept(v: LinderIntercept): LinderHttp {
-        linderIntercept = v
+    /**
+     * 设置拦截器
+     * @param v 拦截器对象
+     * @return 当前对象（支持链式调用）
+     */
+    public func setInterceptor(v: Interceptor): LinderHttp {
+        interceptor = v
         this
     }
 
@@ -572,9 +577,14 @@ public class LinderHttp {
         var requestBuilder = HttpRequestBuilder()
         var res: HttpResponse
         var response: LinderHttpResponse = LinderHttpResponse()
-        if (linderIntercept.isSome()) {
-            linderIntercept.getOrThrow().request(this)
+
+        // 请求前拦截
+        if (let Some(intercept) <- interceptor) {
+            if (let Some(request) <- intercept.onRequest) {
+                request(this)
+            }
         }
+
         try {
             httpClientBuilder
                 .tlsConfig(tlsConfig)
@@ -637,10 +647,13 @@ public class LinderHttp {
                 }
             }
         } catch (e: Exception) {
-            match (linderIntercept) {
-                case Some(intercept) => intercept.requestError(e)
-                case None => throw e
+            // 请求构建错误拦截
+            if (let Some(intercept) <- interceptor) {
+                if (let Some(error) <- intercept.onError) {
+                    error(e, this) 
+                }
             }
+            throw e
         }
 
         try {
@@ -651,17 +664,22 @@ public class LinderHttp {
                 setDefaultHeader()
             }
         } catch (e: Exception) {
-            match (linderIntercept) {
-                case Some(intercept) => intercept.requestError(e)
-                case None => throw e
+            // 请求发送错误拦截
+            if (let Some(intercept) <- interceptor) {
+                if (let Some(error) <- intercept.onError) {
+                    error(e, this)
+                }
             }
-        }   
-
-        response.intercept = linderIntercept
-
-        if (let Some(intercept) <- linderIntercept) {
-            intercept.response(response)
+            throw e
         }
+
+        // 响应拦截
+        if (let Some(intercept) <- interceptor) {
+            if (let Some(response) <- intercept.onResponse) {
+                response(response)
+            }
+        }
+
         clearBody()
         response
     }

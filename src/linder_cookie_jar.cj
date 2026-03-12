@@ -1,4 +1,4 @@
-﻿package linderHttp.cookie
+﻿package linderHttp
 
 import stdx.net.http.*
 import stdx.encoding.url.*

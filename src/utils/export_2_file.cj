@@ -47,11 +47,9 @@ public func export2File(content!: String, filePath!: Path, conflictMethod!: Conf
  * @param content     输入流对象，不可为空（读取后流位置将移动到末尾）。
  * @param filePath    目标文件路径（包含文件名和扩展名），不可为空。
  * @param conflictMethod 文件冲突解决策略，默认为`ConflictMethod.HARMONY`。
- * @param intercept  读取回调拦截函数。
  */
 public func export2File(content!: InputStream, filePath!: Path,
-    conflictMethod!: ConflictMethod = ConflictMethod.Harmony, totalSize!: Int64,
-    intercept!: ?Export2FileIntercept = None): Unit {
+    conflictMethod!: ConflictMethod = ConflictMethod.Harmony, totalSize!: Int64): Unit {
     var _filePath = filePath.normalize()
     var _fileName = filePath.fileName
 
@@ -75,34 +73,15 @@ public func export2File(content!: InputStream, filePath!: Path,
         case ConflictMethod.OverWrite => _filePath = _filePath
     }
 
-    if (intercept.isSome()) {
-        intercept.getOrThrow().onStartRead(totalSize)
-    }
-
     let file = File(_filePath, OpenMode.Write)
     let bitArray: Array<Byte> = Array<Byte>(4096, repeat: 0)
     var readSize = content.read(bitArray)
     var hasReadSize = readSize
     do {
-        if (intercept.isSome()) {
-            intercept.getOrThrow().onReadProgressUpdate(readSize, hasReadSize, totalSize)
-        }
         file.write(bitArray[0..readSize])
         readSize = content.read(bitArray)
         hasReadSize += readSize
     } while (readSize > 0)
 
-    if (intercept.isSome()) {
-        intercept.getOrThrow().onReadEnd(_filePath)
-    }
-
     file.close()
-}
-
-public class Export2FileIntercept {
-    public Export2FileIntercept(
-        public var onStartRead!: (Int64) -> Unit = {_ =>},
-        public var onReadProgressUpdate!: (Int64, Int64, Int64) -> Unit = {_, _, _ =>},
-        public var onReadEnd!: (?Path) -> Unit = {_=>}
-    ) {}
 }

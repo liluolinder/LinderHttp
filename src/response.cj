@@ -10,7 +10,6 @@ public class LinderHttpResponse {
      * @param headers 响应头集合（键值对容器）
      * @param isPersistent 连接是否保持
      * @param request 关联的请求对象（可选）
-     * @param intercept 拦截器（可选）
      */
     public LinderHttpResponse(
         public var body!: ?InputStream = None,
@@ -18,8 +17,7 @@ public class LinderHttpResponse {
         public var status!: UInt16,
         public var headers!: HttpHeaders,
         public var isPersistent!: Bool,
-        public var request!: ?HttpRequest = None,
-        public var intercept!: ?LinderIntercept = None
+        public var request!: ?HttpRequest = None
     ) {}
 
     public init() {
@@ -29,7 +27,6 @@ public class LinderHttpResponse {
         headers = HttpHeaders()
         isPersistent = false
         request = None
-        intercept = None
     }
 
     /**
@@ -167,14 +164,8 @@ public class LinderHttpResponse {
      *
      */
     public func getBodyFile(filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.Harmony): Unit {
-        var exportIntercept: Export2FileIntercept = Export2FileIntercept()
-        if (intercept.isSome()) {
-            exportIntercept.onStartRead = intercept.getOrThrow().onStartRead
-            exportIntercept.onReadProgressUpdate = intercept.getOrThrow().onReadProgressUpdate
-            exportIntercept.onReadEnd = intercept.getOrThrow().onReadEnd
-        }
         export2File(content: body.getOrThrow(), filePath: filePath, conflictMethod: conflictMethod,
-            totalSize: bodySize.getOrDefault({=> 0}), intercept: exportIntercept)
+            totalSize: bodySize.getOrDefault({=> 0}))
     }
 
     /**
