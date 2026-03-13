@@ -651,9 +651,12 @@ public class LinderHttp {
             if (let Some(intercept) <- interceptor) {
                 if (let Some(error) <- intercept.onError) {
                     error(e, this) 
+                }else{
+                    throw e
                 }
+            }else{
+                throw e
             }
-            throw e
         }
 
         try {
@@ -668,15 +671,19 @@ public class LinderHttp {
             if (let Some(intercept) <- interceptor) {
                 if (let Some(error) <- intercept.onError) {
                     error(e, this)
+                }else{
+                    throw e
                 }
+            }else{
+                throw e
             }
-            throw e
+            
         }
 
         // 响应拦截
         if (let Some(intercept) <- interceptor) {
-            if (let Some(response) <- intercept.onResponse) {
-                response(response)
+            if (let Some(res) <- intercept.onResponse) {
+                res(response)
             }
         }
 
