@@ -1,276 +1,219 @@
 # LinderHttp
 
-## 📖 介绍
+一个基于仓颉语言开发的现代化 HTTP 客户端库,提供简洁优雅的 API 和强大的功能支持。
 
-LinderHttp 是一个轻量级 HTTP 客户端库，提供请求构建、响应解析、拦截器等核心功能，帮助开发者高效处理网络请求。
+## 特性
 
-## ✨ 项目特性
+- **链式调用**: 支持流畅的链式 API 设计,代码更简洁
+- **HTTP/2 支持**: 完整支持 HTTP/2 协议及流控配置
+- **TLS/SSL**: 内置安全的 TLS 配置,支持自定义证书
+- **拦截器机制**: 提供请求/响应/错误拦截器,方便统一处理
+- **多种请求体**: 支持 String、JSON、FormData、Multipart、Stream 等多种格式
+- **WebSocket**: 封装 WebSocket 客户端,支持文本/二进制消息
+- **快速请求**: 提供 `HttpQuick` 类似 axios 的快捷方法
+- **代理支持**: 支持 HTTP/HTTPS 代理配置
+- **自动重定向**: 可配置的自动重定向处理
 
-- 🔧 全项目采用**仓颉语言**开发
-- ⚡ 内置多种便捷请求函数与请求体解析工具
-- 🛡️ 支持拦截器机制，可动态修改请求/响应
-- 📦 提供简洁的请求头管理类与工具函数
 
-## 📚 API 说明
+## 快速开始
 
-所有核心接口、枚举和工具函数详见：\
-👉  [API参考](./doc/feature_api.md)
+### 基础 GET 请求
 
-## 🍴 食用方式
-
-### 1️⃣ 依赖引入
-
-在 `cjpm.toml` 中添加：
-
-```toml
-[dependencies]
-linderHttp = { git = "https://gitcode.com/LiquidStudio/LinderHttp.git" }
-```
-
-### 2️⃣ 安装与构建
-
-```bash
-cjpm update  # 🔄 更新依赖
-cjpm build   # 🛠️ 构建项目
-```
-
-## 🚀 功能示例
-
-### GET请求
-
-```Cangjie
+```cangjie
 import linderHttp.*
-import linderHttp.utils.*
-import linderHttp.commons.*
 
-main(): Int64 {
-    let test: LinderHttp = LinderHttp(
-        url: RequestUrl.from("http://example.com"),
-        method: RequestMethod.GET,
-    )
-    let res = test.send()
-    res.status |> println //输出响应状态
-    return 0
-}
+// 使用快捷方法
+let response = HttpQuick.get("https://api.example.com/data")
+println(response.getBodyString())
+
+// 使用客户端实例
+let client = LinderHttpClient(url: "https://api.example.com/data")
+let response = client.send()
+println(response.status)
 ```
 
-### POST请求-请求体为JSON(application/json)
+### POST JSON 数据
 
-- 示例JSON
-
-```Json
-{
-  "name": "张三",
-  "age": "18"
-}
-```
-
-- 请求方式
-
-```Cangjie
+```cangjie
 import linderHttp.*
-import linderHttp.utils.*
-import linderHttp.commons.*
 import stdx.encoding.json.*
 
-main(): Int64 {
+// 快捷方法
+let json = JsonObject()
+json.put("name", "张三")
+json.put("age", 25)
+let response = HttpQuick.post("https://api.example.com/users", json)
 
-    //JsonObject构造
-    var body: JsonObject = JsonObject()
-    body.put('name', JsonString("张三"))
-    body.put('age', JsonString("18"))
-    body.toJsonString() |> println
-
-    //字符串构造
-    body = JsonValue.fromStr(
-        #"{
-            "name": "张三",
-            "age": "18"
-        }"#).asObject()
-
-    let test: LinderHttp = LinderHttp(
-        url: RequestUrl.from("http://example.com"),
-        method: RequestMethod.POST,
-        requestBody: RequestBody.from(body)
-    )
-    let res = test.send()
-    res.status |> println //输出响应状态
-    return 0
-}
+// 链式调用
+let response = LinderHttpClient(url: "https://api.example.com/users")
+    .setMethod(RequestMethod.POST)
+    .setBody(json)
+    .send()
 ```
 
-### POST请求-请求体为Form(application/x-www-form-urlencoded)
+### 设置请求头
 
-- 示例Form
-
-```
-name=%E5%BC%A0%E4%B8%89&age=18
-```
-
-- 请求方式
-
-```Cangjie
-import linderHttp.*
-import linderHttp.utils.*
-import linderHttp.commons.*
-import stdx.encoding.url.*
-
-main(): Int64 {
-    //Form构造
-    var body: Form = Form()
-    body.add('name', "张三")
-    body.add('age', "18")
-
-    body.toEncodeString() |> println
-
-    let test: LinderHttp = LinderHttp(
-        url: RequestUrl.from("http://example.com"),
-        method: RequestMethod.POST,
-        requestBody: RequestBody.from(body)
-    )
-    let res = test.send()
-    res.status |> println //输出响应状态
-    return 0
-}
+```cangjie
+let response = LinderHttpClient(url: "https://api.example.com/data")
+    .setHeader("Authorization", "Bearer token123")
+    .setHeader("Content-Type", "application/json")
+    .send()
 ```
 
-### 拦截器(lambda构造)
+### 处理响应
 
-```Cangjie
-import linderHttp.*
-import linderHttp.utils.*
-import linderHttp.commons.*
+```cangjie
+let response = HttpQuick.get("https://api.example.com/data")
 
-main(): Int64 {
-    let test: LinderHttp = LinderHttp(
-        url: RequestUrl.from("http://example.com"),
-        method: RequestMethod.GET,
-        intercept: Intercept(
-            requestL: {
-                req: LinderHttp => req.url |> println //输出请求域名
-            },
-            requestErrorL: {
-                err: Exception => '小笨蛋，请求出错了哦，错误信息为${err.message}' |> println
-            },
-            responseL: {
-                res: LinderHttpResponse => res.status |> println //输出响应状态
-            },
-            responseErrorL: {
-                err: Exception => '小笨蛋，请求出错了哦，错误信息为${err.message}' |> println
-            },
-            onStartReadL: {
-                totalSize: Int64 => '文件总大小为${totalSize}' |> println
-            },
-            onReadProgressUpdateL: {
-                singleReadSize: Int64, hasReadSize: Int64, totalSize: Int64 => '本次读取文件大小为${singleReadSize}, 已经读取了${hasReadSize}, 总大小为${totalSize}' |>
-                    println
-            },
-            onReadEndL: {
-              path:?Path  => '保存完成,保存地址为${path}' |> println
-            }
-        )
-    )
-    let res = test.send()
-    res.status |> println //输出响应状态
-    return 0
-}
+// 获取状态码
+println("状态码: ${response.status}")
+
+// 获取响应体字符串
+let body = response.getBodyString()
+
+// 获取 JSON 对象
+let json = response.getBodyJsonObject()
+
+// 获取响应头
+let contentType = response.getHeader("content-type")
+
+// 保存为文件
+response.getBodyFile(filePath: Path("./data.json"))
 ```
 
-### 拦截器(自定义对象构造)
+### 使用拦截器
 
-```Cangjie
-import linderHttp.*
-import linderHttp.utils.*
-import linderHttp.commons.*
-
-public class MyInterCept <: LinderIntercept {
-    public func request(req: LinderHttp): Unit {
-        req.url |> println //输出请求域名
+```cangjie
+// 创建拦截器
+let interceptor = Interceptor(
+    onRequest: { client => 
+        println("发送请求: ${client.url}")
+    },
+    onError: { error, client => 
+        println("请求失败: ${error.message}")
+    },
+    onResponse: { response => 
+        println("收到响应: ${response.status}")
     }
+)
 
-    public func requestError(error: Exception): Unit {
-        '小笨蛋，请求出错了哦，错误信息为${error.message}' |> println
-    }
+// 使用拦截器
+let response = LinderHttpClient(
+    url: "https://api.example.com/data",
+    interceptor: interceptor
+).send()
+```
 
-    public func response(res: LinderHttpResponse): Unit {
-        res.status |> println //输出响应状态
-    }
+### Multipart 文件上传
 
-    public func responseError(error: Exception): Unit {
-        '小笨蛋，请求出错了哦，错误信息为${error.message}' |> println
-    }
+```cangjie
+let multipart = MultipartFormData()
+    .addText("username", "张三")
+    .addFile("avatar", "photo.jpg", fileBytes)
 
-    public func onStartRead(totalSize: Int64): Unit {
-        '文件总大小为${totalSize}' |> println
-    }
+let response = LinderHttpClient(url: "https://api.example.com/upload")
+    .setMethod(RequestMethod.POST)
+    .setBody(multipart)
+    .send()
+```
 
-    public func onReadProgressUpdate(singleReadSize: Int64, hasReadSize: Int64, totalSize: Int64): Unit {
-       '本次读取文件大小为${singleReadSize}, 已经读取了${hasReadSize}, 总大小为${totalSize}' |> println
-    }
+### WebSocket 连接
 
-    public func onReadEnd(path:?Path): Unit{
-       '保存完成,保存地址为${path}' |> println
-    }
+```cangjie
+// 创建 WebSocket 客户端
+let ws = WebSocketClient("wss://echo.websocket.org")
+
+// 连接服务器
+ws.connect()
+
+// 发送消息
+ws.sendText("Hello, WebSocket!")
+
+// 接收消息
+if (let Some(message) <- ws.readText()) {
+    println("收到消息: ${message}")
 }
 
-main(): Int64 {
-    let test: LinderHttp = LinderHttp(
-        url: RequestUrl.from("http://example.com"),
-        method: RequestMethod.GET,
-        intercept: MyInterCept()
-    )
-    let res = test.send()
-    res.status |> println //输出响应状态
-    return 0
-}
+// 关闭连接
+ws.close()
 ```
 
-### 响应体操作
+### 配置超时和代理
 
-```Cangjie
-import linderHttp.*
-import linderHttp.utils.*
-import linderHttp.commons.*
-
-main(): Int64 {
-    let test: LinderHttp = LinderHttp(
-        url: RequestUrl.from("http://example.com"),
-        method: RequestMethod.GET
-    )
-    let res = test.send()
-
-    res.setCookie //获取响应头中 Set-Cookie 字段所有内容
-    res.location //获取响应头中 location 字段所有内容
-    res.contentType // 获取响应头中 contentType 字段所有内容
-
-    /*
-        一下为示例代码，getBodyXXX系列对body读取代码只能使用一个且只能使用一次
-     */
-    //将body以String类型返回
-    res.getBodyString()
-    //将body以JSONValue类型返回
-    res.getBodyJsonValue()
-    //将body以JsonObject类型返回
-    res.getBodyJsonObject()
-    //将body以JsonString类型返回
-    res.getBodyJsonString()
-    //将body输出文件
-    res.getBodyFile(filePath: Path('./test'))
-    //将body以InputStream类型返回
-    res.getBodyStream()
-    //将body以DataModel类型返回，方便序列化与反序列化
-    res.getBodyDataModel()
-    //将body以ByteBuffer类型返回
-    res.getBodyByteBuffer()
-    return 0
-}
+```cangjie
+let response = LinderHttpClient(url: "https://api.example.com/data")
+    .setReadTimeout(Duration.second * 30)  // 30秒读取超时
+    .setWriteTimeout(Duration.second * 10) // 10秒写入超时
+    .setHttpProxy("http://proxy.example.com:8080")
+    .setHttpsProxy("https://proxy.example.com:8443")
+    .send()
 ```
 
-## ⚠️ 约束与限制
+## API 文档
 
-验证通过的运行环境：\
-`Cangjie Version: 1.0.4 - Windows`
+详细的 API 文档请参考 [API_REFERENCE.md](./API_REFERENCE.md)
 
-## 📜 开源协议
+## 核心类
 
-本项目采用  [Mulan PSL v2](./LICENSE) 许可
+### LinderHttpClient
+
+HTTP 客户端主类,提供完整的请求配置和发送功能。
+
+**主要方法:**
+- `setUrl(url)`: 设置请求 URL
+- `setMethod(method)`: 设置请求方法
+- `setHeader(key, value)`: 设置请求头
+- `setBody(body)`: 设置请求体
+- `send()`: 发送请求
+
+### LinderHttpResponse
+
+HTTP 响应封装类,提供多种响应数据访问方式。
+
+**主要方法:**
+- `getBodyString()`: 获取字符串响应体
+- `getBodyJsonObject()`: 获取 JSON 对象
+- `getBodyFile(filePath)`: 保存为文件
+- `getHeader(key)`: 获取响应头
+
+### HttpQuick
+
+快捷请求类,提供类似 axios 的静态方法。
+
+**主要方法:**
+- `get(url)`: GET 请求
+- `post(url, body)`: POST 请求
+- `put(url, body)`: PUT 请求
+- `delete(url)`: DELETE 请求
+
+### WebSocketClient
+
+WebSocket 客户端封装类。
+
+**主要方法:**
+- `connect()`: 建立连接
+- `sendText(message)`: 发送文本消息
+- `readText()`: 读取文本消息
+- `close()`: 关闭连接
+
+## 示例项目
+
+查看 `examples/` 目录获取更多使用示例:
+
+- 基础 HTTP 请求
+- RESTful API 调用
+- 文件上传下载
+- WebSocket 实时通信
+- 拦截器使用
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request!
+
+## 许可证
+
+MIT License
+
+## 联系方式
+
+如有问题或建议,请提交 Issue 或联系维护者。

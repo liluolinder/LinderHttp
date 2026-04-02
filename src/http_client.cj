@@ -1,24 +1,48 @@
 package linderHttp
 
-import std.collection.*
-import stdx.encoding.url.*
 
-public class LinderHttp {
+
+
+/**
+ * HTTP客户端类
+ * 
+ * 提供HTTP请求构建和发送功能，支持链式调用配置。
+ * 
+ * ## 功能特性
+ * - 支持所有标准HTTP方法（GET、POST、PUT、DELETE等）
+ * - 支持自定义HTTP方法
+ * - 支持TLS/SSL安全连接
+ * - 支持HTTP/2协议
+ * - 支持请求/响应拦截器
+ * - 支持代理设置
+ * - 支持自动重定向
+ * 
+ * ## 使用示例
+ * ```cangjie
+ * let client = HttpClient(url: "https://api.example.com/data")
+ * let response = client
+ *     .setHeader("Content-Type", "application/json")
+ *     .setBody("{\"name\": \"test\"}")
+ *     .send()
+ * ```
+ */
+public class LinderHttpClient {
     /**
      * HTTP客户端构建器实例
-     * 默认值：`None`（未初始化状态）
+     * 默认值：`ClientBuilder()`（未初始化状态）
      * 安全提示：禁止外部直接访问底层构建器，
-     * 调用Send()时候进行创建
+     * 调用send()时候进行创建
      */
-    private var httpClientBuilder: ClientBuilder = ClientBuilder()
+    private var clientBuilder: ClientBuilder = ClientBuilder()
 
-    private var httpClient: ?Client = None
+    private var client: ?Client = None
 
     /**
      * HTTP拦截器
      * 默认值：`None`（未初始化状态）
      */
     private var interceptor: ?Interceptor = None
+    
     /**
      * 目标请求URL
      * 默认值：空字符串
@@ -28,19 +52,19 @@ public class LinderHttp {
 
     /**
      * 自定义HTTP头部容器
-     * 类型：专属的`LinderHttpHeader`对象
+     * 类型：专属的`HttpHeader`对象
      * 默认值：空头部容器实例
      */
-    public var httpHeader: LinderHttpHeader = LinderHttpHeader()
+    public var headers: HttpHeader = HttpHeader()
 
     /**
      * TLS/SSL客户端安全配置
      *
-     * 默认值：`defaultTSLConfig()`生成的基准配置
+     * 默认值：`defaultTlsConfig()`生成的基准配置
      * 特殊机制：`setUrl()`会重置serverName为URL的hostName，
      * 需显式调用`setServerName()`覆盖此行为
      */
-    public var tlsConfig: TlsClientConfig = defaultTSLConfig()
+    public var tlsConfig: TlsClientConfig = defaultTlsConfig()
 
     /**
      * HTTP请求方法标识
@@ -95,26 +119,25 @@ public class LinderHttp {
      * 设置客户端 http 代理，默认使用系统环境变量 http_proxy 的值。
      */
     public var httpProxy: String = ''
+    
     /**
      * 设置客户端 https 代理，默认使用系统环境变量 https_proxy 的值。
      */
     public var httpsProxy: String = ''
 
-   // public init() {}
-    
     /**
-     * 初始化
+     * 初始化HTTP客户端
      *
      * @param url 请求的目标URL（包含协议头，如https://）
      * @param serverName 自定义域名标识，用于TLS握手验证
      *     - 若未设置则从url自动设置
      *     - 优先级低于tlsConfig：若同时设置serverName和tlsConfig，serverName将被忽略
      *     - 默认行为：当serverName为空时，自动从url解析hostName
-     * @param tlsConfig TLS客户端配置，默认使用defaultTSLConfig()
+     * @param tlsConfig TLS客户端配置，默认使用defaultTlsConfig()
      *     - 重要：该参数会覆盖serverName的设置，两者同时存在时以tlsConfig为准
-     * @param linderHttpHeader 库专属HTTP头容器
-     * @param httpHeaders 通用HTTP头容器
-     *     - 互斥约束：linderHttpHeader与httpHeaders不可同时设置，否则抛出IllegalArgumentException
+     * @param httpHeader 库专属HTTP头容器
+     * @param stdHeaders 通用HTTP头容器
+     *     - 互斥约束：httpHeader与stdHeaders不可同时设置，否则抛出IllegalArgumentException
      * @param interceptor HTTP拦截器，默认None
      * @param method 请求方法，默认GET
      * @param requestBody 请求附带数据，默认None
@@ -125,9 +148,9 @@ public class LinderHttp {
      * @param enablePush 配置客户端 HTTP/2 是否支持服务器推送 默认值 true。
      * @param headerTableSize 配置客户端 HTTP/2 Hpack 动态表初始值。 默认值 4096
      * @param httpProxy 设置客户端 http 代理，默认使用系统环境变量 http_proxy 的值。
-     * @Param httpsProxy 设置客户端 https 代理，默认使用系统环境变量 https_proxy 的值。
+     * @param httpsProxy 设置客户端 https 代理，默认使用系统环境变量 https_proxy 的值。
      *
-     * @throws IllegalArgumentException 当同时设置linderHttpHeader和httpHeaders时抛出
+     * @throws IllegalArgumentException 当同时设置httpHeader和stdHeaders时抛出
      *
      * 初始化逻辑说明：
      * 1. TLS域名处理：
@@ -140,8 +163,8 @@ public class LinderHttp {
         url!: RequestUrl = RequestUrl.from('') ,
         serverName!: String = '',
         tlsConfig!: ?TlsClientConfig = None,
-        linderHttpHeader!: ?LinderHttpHeader = None,
-        httpHeaders!: ?HttpHeaders = None,
+        httpHeader!: ?HttpHeader = None,
+        stdHeaders!: ?HttpHeaders = None,
         interceptor!: ?Interceptor = None,
         method!: RequestMethod = RequestMethod.GET,
         requestBody!: ?RequestBody = None,
@@ -174,12 +197,12 @@ public class LinderHttp {
         }
 
         this.requestBody = requestBody
-        if (linderHttpHeader.isNone() && httpHeaders.isNone()) {
-            this.httpHeader = LinderHttpHeader()
-        } else if (!linderHttpHeader.isNone() && httpHeaders.isNone()) {
-            this.httpHeader = linderHttpHeader.getOrThrow()
-        } else if (linderHttpHeader.isNone() && !httpHeaders.isNone()) {
-            this.httpHeader.setALL(httpHeaders.getOrThrow())
+        if (httpHeader.isNone() && stdHeaders.isNone()) {
+            this.headers = HttpHeader()
+        } else if (!httpHeader.isNone() && stdHeaders.isNone()) {
+            this.headers = httpHeader.getOrThrow()
+        } else if (httpHeader.isNone() && !stdHeaders.isNone()) {
+            this.headers.setAll(stdHeaders.getOrThrow())
         } else {
             throw IllegalArgumentException('不可同时设置双Headers')
         }
@@ -203,7 +226,7 @@ public class LinderHttp {
      *
      * 调用此方法将同步更新TLS配置的域名，
      */
-    public func setUrl(v: RequestUrl): LinderHttp {
+    public func setUrl(v: RequestUrl): LinderHttpClient {
         url = v
         tlsConfig.serverName = if (tlsConfig.serverName.isSome()) {
             tlsConfig.serverName
@@ -224,7 +247,7 @@ public class LinderHttp {
      *
      * 调用此方法将同步更新TLS配置的域名，
      */
-    public func setUrl(v: String): LinderHttp {
+    public func setUrl(v: String): LinderHttpClient {
         url = RequestUrl.from(v)
         tlsConfig.serverName = if (tlsConfig.serverName.isSome()) {
             tlsConfig.serverName
@@ -245,7 +268,7 @@ public class LinderHttp {
      *
      * 调用此方法将同步更新TLS配置的域名，
      */
-    public func setUrl(v: URL): LinderHttp {
+    public func setUrl(v: URL): LinderHttpClient {
         url = RequestUrl.from(v)
         tlsConfig.serverName = if (tlsConfig.serverName.isSome()) {
             tlsConfig.serverName
@@ -263,10 +286,10 @@ public class LinderHttp {
      * @param v 标准HTTP头容器
      * @return 当前对象（支持链式调用）
      *
-     * 重要：此操作将覆盖现有LinderHttpHeader
+     * 重要：此操作将覆盖现有HttpHeader
      */
-    public func setHeader(v: HttpHeaders): LinderHttp {
-        httpHeader.setALL(v)
+    public func setHeader(v: HttpHeaders): LinderHttpClient {
+        headers.setAll(v)
         this
     }
 
@@ -275,10 +298,10 @@ public class LinderHttp {
      * @param v 专属HTTP头容器
      * @return 当前对象（支持链式调用）
      *
-     * 警告：此操作将覆盖现有LinderHttpHeader
+     * 警告：此操作将覆盖现有HttpHeader
      */
-    public func setHeader(v: LinderHttpHeader): LinderHttp {
-        httpHeader = (v)
+    public func setHeader(v: HttpHeader): LinderHttpClient {
+        headers = (v)
         this
     }
 
@@ -290,9 +313,9 @@ public class LinderHttp {
      * 说明：遍历HashMap中的所有键值对，逐个添加到HTTP头部
      * 注意：如果键已存在，将覆盖原有值
      */
-    public func setHeader(v: HashMap<String, String>): LinderHttp {
+    public func setHeader(v: HashMap<String, String>): LinderHttpClient {
         for ((key, value) in v) {
-            httpHeader.set(key: key, value: value)
+            headers.set(key: key, value: value)
         }
         this
     }
@@ -305,7 +328,7 @@ public class LinderHttp {
      * 内部自动转换为字符串形式存储，
      * 优先使用此方法保证方法名合法性
      */
-    public func setMethod(v: RequestMethod): LinderHttp {
+    public func setMethod(v: RequestMethod): LinderHttpClient {
         method = v.toString()
         this
     }
@@ -318,7 +341,7 @@ public class LinderHttp {
      * 注意：需自行确保方法名符合HTTP规范，
      * 非标准方法可能导致请求失败
      */
-    public func setMethod(v: String): LinderHttp {
+    public func setMethod(v: String): LinderHttpClient {
         method = v
         this
     }
@@ -328,7 +351,7 @@ public class LinderHttp {
      * @param v 拦截器对象
      * @return 当前对象（支持链式调用）
      */
-    public func setInterceptor(v: Interceptor): LinderHttp {
+    public func setInterceptor(v: Interceptor): LinderHttpClient {
         interceptor = v
         this
     }
@@ -341,7 +364,7 @@ public class LinderHttp {
      * 重要：此设置会被后续setUrl()覆盖，
      * 如需设置请在setUrl()后调用
      */
-    public func setServerName(v: String): LinderHttp {
+    public func setServerName(v: String): LinderHttpClient {
         tlsConfig.serverName = v
         this
     }
@@ -351,7 +374,7 @@ public class LinderHttp {
      * @param v 是否自动重定向（默认true）
      * @return 当前对象（支持链式调用）
      */
-    public func setAutoRedirect(v: Bool): LinderHttp {
+    public func setAutoRedirect(v: Bool): LinderHttpClient {
         autoRedirect = v
         this
     }
@@ -361,7 +384,7 @@ public class LinderHttp {
      * @param v 超时时间（不设置默认15秒）
      * @return 当前对象（支持链式调用）
      */
-    public func setReadTimeout(v: Duration): LinderHttp {
+    public func setReadTimeout(v: Duration): LinderHttpClient {
         readTimeout = v
         this
     }
@@ -371,7 +394,7 @@ public class LinderHttp {
      * @param v 超时时间（不设置默认15秒）
      * @return 当前对象（支持链式调用）
      */
-    public func setWriteTimeout(v: Duration): LinderHttp {
+    public func setWriteTimeout(v: Duration): LinderHttpClient {
         writeTimeout = v
         this
     }
@@ -381,7 +404,7 @@ public class LinderHttp {
      * @param v RequestBody枚举包裹的数据
      * @return 当前对象（支持链式调用）
      */
-    public func setBody(v: RequestBody): LinderHttp {
+    public func setBody(v: RequestBody): LinderHttpClient {
         requestBody = v
         this
     }
@@ -391,7 +414,7 @@ public class LinderHttp {
      * @param v String类型数据
      * @return 当前对象（支持链式调用）
      */
-    public func setBody(v: String): LinderHttp {
+    public func setBody(v: String): LinderHttpClient {
         requestBody = RequestBody.from(v)
         this
     }
@@ -401,7 +424,7 @@ public class LinderHttp {
      * @param v InputStream类型数据
      * @return 当前对象（支持链式调用）
      */
-    public func setBody(v: InputStream): LinderHttp {
+    public func setBody(v: InputStream): LinderHttpClient {
         requestBody = RequestBody.from(v)
         this
     }
@@ -411,7 +434,7 @@ public class LinderHttp {
      * @param v Array<Byte>类型数据
      * @return 当前对象（支持链式调用）
      */
-    public func setBody(v: Array<Byte>): LinderHttp {
+    public func setBody(v: Array<Byte>): LinderHttpClient {
         requestBody = RequestBody.from(v)
         this
     }
@@ -421,7 +444,7 @@ public class LinderHttp {
      * @param v DataModel类型数据
      * @return 当前对象（支持链式调用）
      */
-    public func setBody(v: DataModel): LinderHttp {
+    public func setBody(v: DataModel): LinderHttpClient {
         requestBody = RequestBody.from(v)
         this
     }
@@ -431,7 +454,7 @@ public class LinderHttp {
      * @param v JsonObject类型数据
      * @return 当前对象（支持链式调用）
      */
-    public func setBody(v: JsonObject): LinderHttp {
+    public func setBody(v: JsonObject): LinderHttpClient {
         requestBody = RequestBody.from(v)
         this
     }
@@ -441,7 +464,7 @@ public class LinderHttp {
      * @param v Form类型数据
      * @return 当前对象（支持链式调用）
      */
-    public func setBody(v: Form): LinderHttp {
+    public func setBody(v: Form): LinderHttpClient {
         requestBody = RequestBody.from(v)
         this
     }
@@ -451,7 +474,7 @@ public class LinderHttp {
      * @param v MultipartFormData类型数据
      * @return 当前对象（支持链式调用）
      */
-    public func setBody(v: MultipartFormData): LinderHttp {
+    public func setBody(v: MultipartFormData): LinderHttpClient {
         requestBody = RequestBody.from(v)
         this
     }
@@ -461,7 +484,7 @@ public class LinderHttp {
      * @param v UInt32
      * @return 当前对象（支持链式调用）
      */
-    public func setInitialWindowSize(v: UInt32): LinderHttp {
+    public func setInitialWindowSize(v: UInt32): LinderHttpClient {
         initialWindowSize = v
         this
     }
@@ -471,7 +494,7 @@ public class LinderHttp {
      * @param v Bool
      * @return 当前对象（支持链式调用）
      */
-    public func setEnablePush(v: Bool): LinderHttp {
+    public func setEnablePush(v: Bool): LinderHttpClient {
         enablePush = v
         this
     }
@@ -481,7 +504,7 @@ public class LinderHttp {
      * @param v UInt32
      * @return 当前对象（支持链式调用）
      */
-    public func setHeaderTableSize(v: UInt32): LinderHttp {
+    public func setHeaderTableSize(v: UInt32): LinderHttpClient {
         headerTableSize = v
         this
     }
@@ -491,7 +514,7 @@ public class LinderHttp {
      * @param v String
      * @return 当前对象（支持链式调用）
      */
-    public func setHttpProxy(v: String): LinderHttp {
+    public func setHttpProxy(v: String): LinderHttpClient {
         httpProxy = v
         this
     }
@@ -501,7 +524,7 @@ public class LinderHttp {
      * @param v String
      * @return 当前对象（支持链式调用）
      */
-    public func setHttpsProxy(v: String): LinderHttp {
+    public func setHttpsProxy(v: String): LinderHttpClient {
         httpsProxy = v
         this
     }
@@ -510,7 +533,7 @@ public class LinderHttp {
      * 清空请求附带数据
      * @return 当前对象（支持链式调用）
      */
-    public func clearBody(): LinderHttp {
+    public func clearBody(): LinderHttpClient {
         requestBody = None
         this
     }
@@ -519,8 +542,8 @@ public class LinderHttp {
      * 设置默认请求头
      * @return 当前对象（支持链式调用）
      */
-    public func setDefaultHeader(): LinderHttp {
-        httpHeader = LinderHttpHeader()
+    public func setDefaultHeader(): LinderHttpClient {
+        headers = HttpHeader()
         this
     }
 
@@ -528,10 +551,10 @@ public class LinderHttp {
      * 取消请求
      * @return 当前对象（支持链式调用）
      */
-    public func destroy(): LinderHttp {
-        if (!httpClient.isNone()) {
-            httpClient.getOrThrow().close()
-            httpClient = None
+    public func destroy(): LinderHttpClient {
+        if (!client.isNone()) {
+            client.getOrThrow().close()
+            client = None
         }
         this
     }
@@ -544,34 +567,14 @@ public class LinderHttp {
      * 说明：此方法会对URL中的路径和查询参数进行编码，
      * 确保特殊字符（如中文、空格等）被正确编码
      */
-    private func generateURL(originalURL: URL): URL {
-        // var _originalURL = originalURL
-
-        // // 对路径进行编码（如果路径包含非ASCII字符或特殊字符）
-        // let pathString = _originalURL.path.toString()
-        // let encodedPath = URL.encode(pathString)
-        // _originalURL = _originalURL.replace(path: encodedPath)
-
-        // // 对查询参数进行编码（如果存在）
-        // if (let Some(query) <- _originalURL.query) {
-        //     let encodedQuery = URL.encode(query.toString())
-        //     _originalURL = _originalURL.replace(query: encodedQuery)
-        // }
-
-        // // 如果有UrlEncoded请求体，替换查询参数
-        // if (let Some(RequestBody.UrlEncoded(v)) <- requestBody) {
-        //     _originalURL = _originalURL.replace(query: v.toEncodeString())
-        // }
-
-        // _originalURL
+    private func encodeUrl(originalURL: URL): URL {
         originalURL
     }
 
     /**
      * 发送请求
      * @param needSetDefaultHeader 是否设置为默认请求头， 默认为否
-     * @param needClearAllBody     是否设置清空请求体， 默认为是
-     * @return LinderHttpResponse 请求返回体对象
+     * @return HttpResponse 请求返回体对象
      */
     public func send(needSetDefaultHeader!: Bool = false): LinderHttpResponse {
         var requestBuilder = HttpRequestBuilder()
@@ -586,7 +589,7 @@ public class LinderHttp {
         }
 
         try {
-            httpClientBuilder
+            clientBuilder
                 .tlsConfig(tlsConfig)
                 .autoRedirect(autoRedirect)
                 .readTimeout(readTimeout)
@@ -596,53 +599,53 @@ public class LinderHttp {
                 .headerTableSize(headerTableSize)
 
             if (httpProxy != '') {
-                httpClientBuilder.httpProxy(httpProxy)
+                clientBuilder.httpProxy(httpProxy)
             }
             if (httpsProxy != '') {
-                httpClientBuilder.httpsProxy(httpsProxy)
+                clientBuilder.httpsProxy(httpsProxy)
             }
 
             requestBuilder.method(method).url(match (url) {
                 case RequestUrl.URL(v) => v
                 case RequestUrl.STRING(v) => URL.parse(v)
-            } |> generateURL).setHeaders(httpHeader.httpHeader)
+            } |> encodeUrl).setHeaders(headers.rawHeaders)
 
             if (!requestBody.isNone()) {
                 match (requestBody.getOrThrow()) {
                     case RequestBody.String(v) =>
                         requestBuilder.body(v)
-                        if (httpHeader.get('content-type').isEmpty()) {
-                            httpHeader.set(key: "content-type", value: "text/xml")
+                        if (headers.get('content-type').isEmpty()) {
+                            headers.set(key: "content-type", value: "text/xml")
                         }
                     case RequestBody.ByteArray(v) =>
                         requestBuilder.body(v)
-                        if (httpHeader.get('content-type').isEmpty()) {
-                            httpHeader.set(key: "content-type", value: "application/octet-stream")
+                        if (headers.get('content-type').isEmpty()) {
+                            headers.set(key: "content-type", value: "application/octet-stream")
                         }
                     case RequestBody.InputStream(v) =>
                         requestBuilder.body(v)
-                        if (httpHeader.get('content-type').isEmpty()) {
-                            httpHeader.set(key: "content-type", value: "application/octet-stream")
+                        if (headers.get('content-type').isEmpty()) {
+                            headers.set(key: "content-type", value: "application/octet-stream")
                         }
                     case RequestBody.UrlEncoded(v) =>
                         requestBuilder.body(v.toEncodeString())
-                        if (httpHeader.get('content-type').isEmpty()) {
-                            httpHeader.set(key: "content-type", value: "application/x-www-form-urlencoded")
+                        if (headers.get('content-type').isEmpty()) {
+                            headers.set(key: "content-type", value: "application/x-www-form-urlencoded")
                         }
                     case RequestBody.Object(v) =>
                         requestBuilder.body(v.toJson().toString())
-                        if (httpHeader.get('content-type').isEmpty()) {
-                            httpHeader.set(key: "content-type", value: "application/json")
+                        if (headers.get('content-type').isEmpty()) {
+                            headers.set(key: "content-type", value: "application/json")
                         }
                     case RequestBody.Json(v) =>
                         requestBuilder.body(v.toString())
-                        if (httpHeader.get('content-type').isEmpty()) {
-                            httpHeader.set(key: "content-type", value: "application/json")
+                        if (headers.get('content-type').isEmpty()) {
+                            headers.set(key: "content-type", value: "application/json")
                         }
                     case RequestBody.Multipart(v) =>
                         requestBuilder.body(v.build())
-                        if (httpHeader.get('content-type').isEmpty()) {
-                            httpHeader.set(key: "content-type", value: v.getContentType())
+                        if (headers.get('content-type').isEmpty()) {
+                            headers.set(key: "content-type", value: v.getContentType())
                         }
                 }
             }
@@ -660,7 +663,7 @@ public class LinderHttp {
         }
 
         try {
-            res = (requestBuilder.build() |> httpClientBuilder.build().send)
+            res = (requestBuilder.build() |> clientBuilder.build().send)
             response = LinderHttpResponse(body: res.body, bodySize: res.bodySize, status: res.status,
                 headers: res.headers, isPersistent: res.isPersistent, request: res.request)
             if (needSetDefaultHeader) {

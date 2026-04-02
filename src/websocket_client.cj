@@ -1,19 +1,32 @@
-﻿package linderHttp.websocket
+package linderHttp
 
-import stdx.net.http.*
-import stdx.net.tls.*
-import std.collection.*
-import stdx.encoding.url.*
 
 /**
- * LinderWebSocket客户端封装类
- * 提供简化的WebSocket连接和消息收发功能
+ * WebSocket客户端封装类
+ * 
+ * 提供简化的WebSocket连接和消息收发功能。
+ * 
+ * ## 功能特性
+ * - WebSocket连接管理
+ * - 文本/二进制消息收发
+ * - Ping/Pong心跳
+ * - 自动处理消息分片
+ * - 子协议支持
+ * 
+ * ## 使用示例
+ * ```cangjie
+ * let ws = WebSocketClient("wss://echo.websocket.org")
+ * ws.connect()
+ * ws.sendText("Hello, WebSocket!")
+ * let message = ws.readText()
+ * ws.close()
+ * ```
  */
-public class LinderWebSocket {
+public class WebSocketClient {
     /**
      * 底层WebSocket连接
      */
-    private var websocket: ?WebSocket = None
+    private var connection: ?WebSocket = None
     
     /**
      * 连接URL
@@ -40,10 +53,10 @@ public class LinderWebSocket {
      */
     public prop selectedSubProtocol: ?String {
         get() {
-            if (websocket.isNone()) {
+            if (connection.isNone()) {
                 None
             } else {
-                websocket.getOrThrow().subProtocol
+                connection.getOrThrow().subProtocol
             }
         }
     }
@@ -69,7 +82,7 @@ public class LinderWebSocket {
      * @param protocols 子协议列表
      * @return 当前对象（支持链式调用）
      */
-    public func setSubProtocols(protocols: ArrayList<String>): LinderWebSocket {
+    public func setSubProtocols(protocols: ArrayList<String>): WebSocketClient {
         this.subProtocols = protocols
         this
     }
@@ -79,7 +92,7 @@ public class LinderWebSocket {
      * @param protocols 子协议数组
      * @return 当前对象（支持链式调用）
      */
-    public func setSubProtocols(protocols: Array<String>): LinderWebSocket {
+    public func setSubProtocols(protocols: Array<String>): WebSocketClient {
         this.subProtocols = ArrayList<String>()
         for (p in protocols) {
             this.subProtocols.add(p)
@@ -92,7 +105,7 @@ public class LinderWebSocket {
      * @param protocol 子协议名称
      * @return 当前对象（支持链式调用）
      */
-    public func addSubProtocol(protocol: String): LinderWebSocket {
+    public func addSubProtocol(protocol: String): WebSocketClient {
         this.subProtocols.add(protocol)
         this
     }
@@ -102,7 +115,7 @@ public class LinderWebSocket {
      * @param headers HttpHeaders对象
      * @return 当前对象（支持链式调用）
      */
-    public func setHeaders(headers: HttpHeaders): LinderWebSocket {
+    public func setHeaders(headers: HttpHeaders): WebSocketClient {
         this.headers = headers
         this
     }
@@ -113,7 +126,7 @@ public class LinderWebSocket {
      * @param value 头部值
      * @return 当前对象（支持链式调用）
      */
-    public func addHeader(name: String, value: String): LinderWebSocket {
+    public func addHeader(name: String, value: String): WebSocketClient {
         this.headers.add(name, value)
         this
     }
@@ -123,7 +136,7 @@ public class LinderWebSocket {
      * @param config TLS配置
      * @return 当前对象（支持链式调用）
      */
-    public func setTlsConfig(config: TlsClientConfig): LinderWebSocket {
+    public func setTlsConfig(config: TlsClientConfig): WebSocketClient {
         this.tlsConfig = config
         this
     }
@@ -147,7 +160,7 @@ public class LinderWebSocket {
             headers: headers
         )
         client.close()
-        websocket = ws
+        connection = ws
         respHeaders
     }
     
@@ -156,10 +169,10 @@ public class LinderWebSocket {
      * @param message 文本内容
      */
     public func sendText(message: String): Unit {
-        if (websocket.isNone()) {
+        if (connection.isNone()) {
             throw HttpException("WebSocket未连接")
         }
-        websocket.getOrThrow().write(TextWebFrame, message.toArray())
+        connection.getOrThrow().write(TextWebFrame, message.toArray())
     }
     
     /**
@@ -167,20 +180,20 @@ public class LinderWebSocket {
      * @param data 二进制数据
      */
     public func sendBinary(data: Array<UInt8>): Unit {
-        if (websocket.isNone()) {
+        if (connection.isNone()) {
             throw HttpException("WebSocket未连接")
         }
-        websocket.getOrThrow().write(BinaryWebFrame, data)
+        connection.getOrThrow().write(BinaryWebFrame, data)
     }
     
     /**
      * 发送Ping帧
      */
     public func ping(): Unit {
-        if (websocket.isNone()) {
+        if (connection.isNone()) {
             throw HttpException("WebSocket未连接")
         }
-        websocket.getOrThrow().write(PingWebFrame, Array<UInt8>())
+        connection.getOrThrow().write(PingWebFrame, Array<UInt8>())
     }
     
     /**
@@ -188,10 +201,10 @@ public class LinderWebSocket {
      * @param payload 负载数据
      */
     public func ping(payload: Array<UInt8>): Unit {
-        if (websocket.isNone()) {
+        if (connection.isNone()) {
             throw HttpException("WebSocket未连接")
         }
-        websocket.getOrThrow().write(PingWebFrame, payload)
+        connection.getOrThrow().write(PingWebFrame, payload)
     }
     
     /**
@@ -199,10 +212,10 @@ public class LinderWebSocket {
      * @param payload 负载数据
      */
     public func pong(payload: Array<UInt8>): Unit {
-        if (websocket.isNone()) {
+        if (connection.isNone()) {
             throw HttpException("WebSocket未连接")
         }
-        websocket.getOrThrow().writePongFrame(payload)
+        connection.getOrThrow().writePongFrame(payload)
     }
     
     /**
@@ -210,10 +223,10 @@ public class LinderWebSocket {
      * @return WebSocketFrame对象
      */
     public func read(): WebSocketFrame {
-        if (websocket.isNone()) {
+        if (connection.isNone()) {
             throw HttpException("WebSocket未连接")
         }
-        websocket.getOrThrow().read()
+        connection.getOrThrow().read()
     }
     
     /**
@@ -295,13 +308,13 @@ public class LinderWebSocket {
      * @param status 关闭状态码（默认1000表示正常关闭）
      */
     public func close(status!: UInt16 = 1000): Unit {
-        if (websocket.isNone()) {
+        if (connection.isNone()) {
             return
         }
         let highByte: UInt8 = UInt8((status >> 8) & 0xFF)
         let lowByte: UInt8 = UInt8(status & 0xFF)
         let statusBytes: Array<UInt8> = [highByte, lowByte]
-        websocket.getOrThrow().write(CloseWebFrame, statusBytes)
+        connection.getOrThrow().write(CloseWebFrame, statusBytes)
     }
     
     /**
@@ -309,7 +322,7 @@ public class LinderWebSocket {
      * @param status 关闭状态码
      */
     public func closeConnection(status!: UInt16 = 1000): Unit {
-        if (websocket.isNone()) {
+        if (connection.isNone()) {
             return
         }
         close(status: status)
@@ -318,8 +331,8 @@ public class LinderWebSocket {
         if (frame.frameType != CloseWebFrame) {
             // 如果不是关闭帧，继续读取
         }
-        websocket.getOrThrow().closeConn()
-        websocket = None
+        connection.getOrThrow().closeConn()
+        connection = None
     }
     
     /**
@@ -327,7 +340,7 @@ public class LinderWebSocket {
      * @return 是否已连接
      */
     public func isConnected(): Bool {
-        !websocket.isNone()
+        !connection.isNone()
     }
     
     /**
@@ -335,6 +348,6 @@ public class LinderWebSocket {
      * @return WebSocket对象
      */
     public func getRawWebSocket(): ?WebSocket {
-        websocket
+        connection
     }
 }

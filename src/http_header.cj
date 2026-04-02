@@ -1,8 +1,24 @@
 package linderHttp
 
-public class LinderHttpHeader {
+
+/**
+ * HTTP头部管理类
+ * 
+ * 提供HTTP请求头的设置、添加、删除和查询功能。
+ * 
+ * ## 功能特性
+ * - 预置浏览器默认头部
+ * - 支持链式调用
+ * - 支持多值头部
+ * 
+ * ## 默认头部
+ * - Sec-ch-ua: Chromium浏览器标识
+ * - Sec-ch-ua-platform: Windows平台标识
+ * - User-agent: Edge浏览器用户代理
+ */
+public class HttpHeader {
     /// 底层HTTP头存储容器（键值对集合）
-    public var httpHeader: HttpHeaders = HttpHeaders()
+    public var rawHeaders: HttpHeaders = HttpHeaders()
 
     /**
      * 初始化构造器
@@ -28,8 +44,8 @@ public class LinderHttpHeader {
      *
      * 注意：此操作将**完全覆盖**现有头信息
      */
-    public func setALL(v: HttpHeaders): LinderHttpHeader {
-        httpHeader = v
+    public func setAll(v: HttpHeaders): HttpHeader {
+        rawHeaders = v
         this
     }
 
@@ -42,8 +58,8 @@ public class LinderHttpHeader {
      *
      * 行为：若字段已存在则覆盖原有值
      */
-    public func set(key!: String, value!: String): LinderHttpHeader {
-        httpHeader.set(key, value)
+    public func set(key!: String, value!: String): HttpHeader {
+        rawHeaders.set(key, value)
         this
     }
 
@@ -58,8 +74,8 @@ public class LinderHttpHeader {
      *   - 若字段不存在则创建
      *  - 若字段已经存在，将在其对应的值列表中添加 value
      */
-    public func add(key!: String, value!: String): LinderHttpHeader {
-        httpHeader.add(key, value)
+    public func add(key!: String, value!: String): HttpHeader {
+        rawHeaders.add(key, value)
         this
     }
 
@@ -71,8 +87,8 @@ public class LinderHttpHeader {
      *
      * 说明：若字段不存在则无操作
      */
-    public func delete(key!: String): LinderHttpHeader {
-        httpHeader.del(key)
+    public func delete(key!: String): HttpHeader {
+        rawHeaders.del(key)
         this
     }
 
@@ -87,7 +103,7 @@ public class LinderHttpHeader {
      *   - 多值头字段返回所有值
      */
     public func get(key: String): Collection<String> {
-        httpHeader.get(key)
+        rawHeaders.get(key)
     }
 
     /**
@@ -99,7 +115,7 @@ public class LinderHttpHeader {
      * 适用场景：单值头字段快速访问（如Content-Type）
      */
     public func getFirst(key: String): ?String {
-        httpHeader.getFirst(key)
+        rawHeaders.getFirst(key)
     }
 
     /**
@@ -108,11 +124,11 @@ public class LinderHttpHeader {
      * @return 当不含任何头字段时返回true
      */
     public func isEmpty(): Bool {
-        httpHeader.isEmpty()
+        rawHeaders.isEmpty()
     }
 
     public func printlnAll(): Unit {
-        for (i in httpHeader) {
+        for (i in rawHeaders) {
             i[0] + " " + i[1].toArray().toString() |> println
         }
     }

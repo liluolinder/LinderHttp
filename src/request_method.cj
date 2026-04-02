@@ -1,5 +1,10 @@
-package linderHttp.commons
+package linderHttp
 
+/**
+ * HTTP请求方法枚举
+ * 
+ * 包含所有标准HTTP方法以及自定义方法支持。
+ */
 public enum RequestMethod <: ToString {
     | GET
     | POST
@@ -8,7 +13,7 @@ public enum RequestMethod <: ToString {
     | PATCH
     | DELETE
     | COPY
-    | OPTION
+    | OPTIONS
     | LINK
     | UNLINK
     | PURGE
@@ -27,7 +32,7 @@ public enum RequestMethod <: ToString {
             case PATCH => "PATCH"
             case DELETE => "DELETE"
             case COPY => "COPY"
-            case OPTION => "OPTION"
+            case OPTIONS => "OPTIONS"
             case LINK => "LINK"
             case UNLINK => "UNLINK"
             case PURGE => "PURGE"

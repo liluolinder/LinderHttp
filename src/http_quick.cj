@@ -1,20 +1,28 @@
-﻿package linderHttp
+package linderHttp
 
-import std.collection.*
-import stdx.encoding.url.*
 
 /**
- * LinderHttp便捷请求方法
- * 提供类似axios风格的快捷请求方法
+ * HTTP便捷请求方法类
+ * 
+ * 提供类似axios风格的快捷请求方法，所有方法均为静态方法。
+ * 
+ * ## 使用示例
+ * ```cangjie
+ * // GET请求
+ * let response = HttpQuick.get("https://api.example.com/data")
+ * 
+ * // POST请求
+ * let response = HttpQuick.post("https://api.example.com/data", "{\"name\": \"test\"}")
+ * ```
  */
-public class LinderHttpQuick {
+public class HttpQuick {
     /**
      * 发送GET请求
      * @param url 请求URL
      * @return 响应对象
      */
     public static func get(url: String): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.GET).send()
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.GET).send()
     }
     
     /**
@@ -23,7 +31,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func get(url: URL): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.GET).send()
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.GET).send()
     }
     
     /**
@@ -33,7 +41,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func get(url: String, headers: HashMap<String, String>): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.GET)
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.GET)
             .setHeader(headers)
             .send()
     }
@@ -45,7 +53,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func post(url: String, body: String): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.POST)
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.POST)
             .setBody(body)
             .send()
     }
@@ -57,7 +65,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func post(url: URL, body: String): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.POST)
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.POST)
             .setBody(body)
             .send()
     }
@@ -69,7 +77,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func post(url: String, body: JsonObject): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.POST)
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.POST)
             .setBody(body)
             .send()
     }
@@ -81,7 +89,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func post(url: String, body: Form): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.POST)
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.POST)
             .setBody(body)
             .send()
     }
@@ -93,7 +101,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func put(url: String, body: String): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.PUT)
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.PUT)
             .setBody(body)
             .send()
     }
@@ -105,7 +113,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func put(url: String, body: JsonObject): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.PUT)
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.PUT)
             .setBody(body)
             .send()
     }
@@ -116,7 +124,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func delete(url: String): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.DELETE).send()
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.DELETE).send()
     }
     
     /**
@@ -125,7 +133,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func delete(url: URL): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.DELETE).send()
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.DELETE).send()
     }
     
     /**
@@ -134,7 +142,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func head(url: String): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.HEAD).send()
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.HEAD).send()
     }
     
     /**
@@ -143,7 +151,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func options(url: String): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.OPTION).send()
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.OPTIONS).send()
     }
     
     /**
@@ -153,7 +161,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func patch(url: String, body: String): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.PATCH)
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.PATCH)
             .setBody(body)
             .send()
     }
@@ -165,7 +173,7 @@ public class LinderHttpQuick {
      * @return 响应对象
      */
     public static func patch(url: String, body: JsonObject): LinderHttpResponse {
-        LinderHttp(url: RequestUrl.from(url), method: RequestMethod.PATCH)
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.PATCH)
             .setBody(body)
             .send()
     }

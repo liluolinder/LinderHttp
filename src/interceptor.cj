@@ -32,7 +32,7 @@ public class Interceptor {
      * - 记录请求日志
      * - 修改请求参数
      */
-    public let onRequest: ?(LinderHttp) -> Unit
+    public let onRequest: ?(LinderHttpClient) -> Unit
 
     /**
      * 请求失败拦截函数
@@ -43,7 +43,7 @@ public class Interceptor {
      * - 错误上报
      * - 请求重试
      */
-    public let onError: ?(Exception, LinderHttp) -> Unit
+    public let onError: ?(Exception, LinderHttpClient) -> Unit
 
     /**
      * 响应接收后拦截函数
@@ -72,8 +72,8 @@ public class Interceptor {
      * ```
      */
     public init(
-        onRequest!: ?(LinderHttp) -> Unit = None,
-        onError!: ?(Exception, LinderHttp) -> Unit = None,
+        onRequest!: ?(LinderHttpClient) -> Unit = None,
+        onError!: ?(Exception, LinderHttpClient) -> Unit = None,
         onResponse!: ?(LinderHttpResponse) -> Unit = None
     ) {
         this.onRequest = onRequest

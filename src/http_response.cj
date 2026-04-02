@@ -1,5 +1,18 @@
 package linderHttp
 
+/**
+ * HTTP响应封装类
+ * 
+ * 提供HTTP响应数据的访问和处理功能。
+ * 
+ * ## 功能特性
+ * - 多种响应体读取方式（字符串、JSON、字节流、文件）
+ * - 自动解析常用响应头
+ * - 支持响应头快速访问
+ * 
+ * ## 注意事项
+ * - 响应体流只能读取一次，多次读取会返回空或异常
+ */
 public class LinderHttpResponse {
     /**
      * 构造HTTP响应对象
@@ -164,8 +177,8 @@ public class LinderHttpResponse {
      *
      */
     public func getBodyFile(filePath!: Path, conflictMethod!: ConflictMethod = ConflictMethod.Harmony): Unit {
-        export2File(content: body.getOrThrow(), filePath: filePath, conflictMethod: conflictMethod,
-            totalSize: bodySize.getOrDefault({=> 0}))
+        exportToFile(content: body.getOrThrow(), filePath: filePath, conflictMethod: conflictMethod,
+            )
     }
 
     /**

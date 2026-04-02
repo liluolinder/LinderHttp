@@ -1,5 +1,12 @@
-package linderHttp.commons
+package linderHttp
 
+
+
+/**
+ * 请求URL类型枚举
+ * 
+ * 支持字符串URL和URL对象两种形式。
+ */
 public enum RequestUrl <: ToString {
     | STRING(String)
     | URL(URL)

@@ -1,9 +1,4 @@
-package linderHttp.commons
-
-import std.io.*
-import std.random.*
-import std.time.*
-import std.collection.*
+package linderHttp
 
 /**
  * Multipart表单项类型
