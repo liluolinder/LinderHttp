@@ -1,6 +1,6 @@
 # LinderHttp API 参考
 
-# AI generated 仅供参考
+- AI generated 仅供参考
 
 ## 目录
 - [1. 包结构概览](#1-包结构概览)
