@@ -301,7 +301,7 @@ public class LinderHttpClient {
      * 警告：此操作将覆盖现有HttpHeader
      */
     public func setHeader(v: HttpHeader): LinderHttpClient {
-        headers = (v)
+        headers = v
         this
     }
 
@@ -580,7 +580,7 @@ public class LinderHttpClient {
         var requestBuilder = HttpRequestBuilder()
         var res: HttpResponse
         var response: LinderHttpResponse = LinderHttpResponse()
-
+        clientBuilder =  ClientBuilder()
         // 请求前拦截
         if (let Some(intercept) <- interceptor) {
             if (let Some(request) <- intercept.onRequest) {
@@ -605,10 +605,6 @@ public class LinderHttpClient {
                 clientBuilder.httpsProxy(httpsProxy)
             }
 
-            requestBuilder.method(method).url(match (url) {
-                case RequestUrl.URL(v) => v
-                case RequestUrl.STRING(v) => URL.parse(v)
-            } |> encodeUrl).setHeaders(headers.rawHeaders)
 
             if (!requestBody.isNone()) {
                 match (requestBody.getOrThrow()) {
@@ -649,6 +645,12 @@ public class LinderHttpClient {
                         }
                 }
             }
+
+             requestBuilder.method(method).url(match (url) {
+                case RequestUrl.URL(v) => v
+                case RequestUrl.STRING(v) => URL.parse(v)
+            } |> encodeUrl).setHeaders(headers.rawHeaders)
+            
         } catch (e: Exception) {
             // 请求构建错误拦截
             if (let Some(intercept) <- interceptor) {
@@ -690,7 +692,6 @@ public class LinderHttpClient {
             }
         }
 
-        clearBody()
         response
     }
 }
