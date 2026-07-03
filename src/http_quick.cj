@@ -82,6 +82,20 @@ public class HttpQuick {
             .send()
     }
     
+
+    /**
+     * 发送POST请求（JSON格式）
+     * @param url 请求URL
+     * @param body JSON对象
+     * @return 响应对象
+     */
+    public static func post(url: URL, body: JsonObject): LinderHttpResponse {
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.POST)
+            .setBody(body)
+            .send()
+    }
+    
+
     /**
      * 发送POST请求（表单格式）
      * @param url 请求URL
@@ -89,6 +103,18 @@ public class HttpQuick {
      * @return 响应对象
      */
     public static func post(url: String, body: Form): LinderHttpResponse {
+        LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.POST)
+            .setBody(body)
+            .send()
+    }
+
+        /**
+     * 发送POST请求（表单格式）
+     * @param url 请求URL
+     * @param body 表单数据
+     * @return 响应对象
+     */
+    public static func post(url: URL, body: Form): LinderHttpResponse {
         LinderHttpClient(url: RequestUrl.from(url), method: RequestMethod.POST)
             .setBody(body)
             .send()
