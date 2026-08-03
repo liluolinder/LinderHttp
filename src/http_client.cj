@@ -568,7 +568,7 @@ public class LinderHttpClient {
      * 确保特殊字符（如中文、空格等）被正确编码
      */
     private func encodeUrl(originalURL: URL): String {
-        URL.encode(originalURL.toString())
+       URL.encode(originalURL.toString())
     }
 
     /**
