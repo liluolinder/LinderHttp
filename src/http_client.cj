@@ -665,7 +665,12 @@ public class LinderHttpClient {
         }
 
         try {
-            res = (requestBuilder.build() |> clientBuilder.build().send)
+            let http = clientBuilder.build()
+            res = (requestBuilder.build() |> http.send)
+            // 泄漏修复：记录底层 client，供 destroy() 在响应体消费完后统一关闭。
+            // 注意：std 的 Client.close() 要求在 body 读完之后调用，此处不能立即 close，
+            // 否则会掐断流式读取；未调用 destroy() 的旧用法行为与原来一致。
+            client = Some(http)
             response = LinderHttpResponse(body: res.body, bodySize: res.bodySize, status: res.status,
                 headers: res.headers, isPersistent: res.isPersistent, request: res.request)
             if (needSetDefaultHeader) {
