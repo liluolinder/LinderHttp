@@ -197,6 +197,11 @@ public class HttpClient <: Resource & ToString {
         RequestBuilder(this, method, url)
     }
 
+    /** 以 `URL` 对象起一个链式请求（与旧 API 的 `setUrl(URL)` 对齐）。 */
+    public func request(method: Method, url: URL): RequestBuilder {
+        RequestBuilder(this, method, url.toString())
+    }
+
     /**
      * 建立 WebSocket 连接。
      *

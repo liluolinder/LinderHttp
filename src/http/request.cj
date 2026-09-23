@@ -121,6 +121,12 @@ public class RequestBuilder {
         this
     }
 
+    /** 以 `URL` 对象设置地址；编码由库在发送时统一处理。 */
+    public func url(value: URL): RequestBuilder {
+        urlValue = value.toString()
+        this
+    }
+
     /** 追加一个查询参数（自动百分号编码）。 */
     public func query(name: String, value: String): RequestBuilder {
         queryValues.add((name, value))
