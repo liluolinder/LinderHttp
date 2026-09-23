@@ -30,9 +30,16 @@ public class HttpHeader {
      */
     public init() {
         this
-            .add(key: "Sec-ch-ua", value: #""Chromium";v="142", "Microsoft Edge";v="142", "Not_A Brand";v="99""#)
+            .add(key: "Sec-ch-ua", value: #""Not;A=Brand";v="8", "Chromium";v="150", "Microsoft Edge";v="150""#)
+            .add(key: "Sec-ch-ua-platform", value: #"Windows"#)
+            /*
+             * 这里原来带着一条写死的 `Cookie: __diamwall=…`：那是某个具体站点的 cookie，却被发给了**每一台**
+             * 目标主机（Mojang、BMCL、CurseForge…）。把别家的 cookie 送给别人既没有道理，也是 WAF 常见的
+             * 拒绝理由（实测在部分网络上会直接回 404，而同样的地址用 curl 是 200）。删掉——需要 cookie 的
+             * 调用方自己按域名设置。
+             */
             .add(key: "User-agent",
-                value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0")
+                value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0")
     }
 
     /**
