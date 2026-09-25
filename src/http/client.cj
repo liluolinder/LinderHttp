@@ -719,6 +719,23 @@ public class HttpClientBuilder {
         this
     }
 
+    /**
+     * 空闲连接在池里存活多久（超过就关掉，把名额让出来）。
+     *
+     * 这个旋钮对"长时间连续下载"很关键。默认值是 **3 分钟**，而连接组的并发是"超出上限就排队"：
+     * 一批请求跑完之后，那些连接**仍然占着名额**直到这个时间过去。于是下载进行到几分钟、池里攒满
+     * 空闲连接之后，新请求全部被拒（`Too many connections to the same server!`），吞吐断崖式下跌
+     * —— 实测：26.3 的资源阶段前 3 分钟每分钟完成 100–270 个文件、零拒绝，第 6 分钟起拒绝数暴涨到
+     * 每分钟 ~100 次，末尾掉到 **27 个/分钟**。
+     *
+     * 连续小文件下载的场景里，连接复用主要发生在"相邻几个请求"之间，拉长到 3 分钟没有任何收益，
+     * 只是把池占满。这类调用方应当把它调到几十秒以内。
+     */
+    public func idleConnectionTimeout(value: Duration): HttpClientBuilder {
+        configValue.pool.idleTimeout = value
+        this
+    }
+
     /** 熔断/健康策略（默认关闭）。 */
     public func healthPolicy(value: HealthPolicy): HttpClientBuilder {
         configValue.health = value.copy()
@@ -900,9 +917,12 @@ internal func parseTarget(urlText: String): ParsedTarget {
  */
 internal func buildTransportClient(config: ClientConfig, host: String): Client {
     var builder = ClientBuilder()
-    let transportLogger = SimpleLogger(getStdOut())
-    transportLogger.level = config.transportLogLevel
-    builder.logger(transportLogger)
+    /*
+     * 传输层日志：落点由 `HttpLogger.sink` 决定（默认丢弃），级别由本客户端显式指定。
+     * 原先这里写死 `SimpleLogger(getStdOut())`，于是即使级别是 OFF，宿主的标准输出也被库选作了落点 ——
+     * 一旦它被重定向到文件，框架日志就混进了宿主的日志里。
+     */
+    builder.logger(HttpLogger.logger(config.transportLogLevel))
     builder.tlsConfig(config.tls.materialize(host, config.http2.enabled))
     builder.autoRedirect(config.followRedirects)
     match (config.timeouts.read) {
