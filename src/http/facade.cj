@@ -30,6 +30,28 @@ public class LinderHttp {
         SharedClients.shutdown()
     }
 
+    /**
+     * 设置全局配置（代理、超时、连接池……），并让共享客户端在下次请求时重建。
+     *
+     * 用途是"运行期改配置"：共享客户端建好之后代理就固定了，而用户改代理设置是真实需求。
+     * 传入的是一份快照，之后改原对象不影响已生效的配置。
+     *
+     * ```cangjie
+     * let config = ClientConfig()
+     * config.httpsProxy = Some("http://127.0.0.1:7890")
+     * LinderHttp.configure(config)
+     * ```
+     */
+    public static func configure(config: ClientConfig): Unit {
+        GlobalConfig.set(config)
+        SharedClients.invalidate()
+    }
+
+    /** 当前的全局配置（没有显式设置过时为 None）。 */
+    public static func configuration(): ?ClientConfig {
+        GlobalConfig.current()
+    }
+
     public static func get(url: String, headers!: ?Headers = None,
         timeouts!: ?Timeouts = None): Response {
         SharedClients.shared().get(url, headers: headers, timeouts: timeouts)

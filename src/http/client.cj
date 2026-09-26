@@ -1,6 +1,14 @@
 package linderHttp.http
 
 /**
+ * 重定向最多跳几层。
+ *
+ * 5 层足够覆盖现实中的跳转链（Modrinth 的图标 CDN 只有一跳），同时防止环状跳转让请求打转。
+ * 放在文件顶部是因为 `HttpClient.execute` 用到了它 —— 仓颉要求声明先于使用。
+ */
+internal let MAX_REDIRECT_HOPS: Int64 = 5
+
+/**
  * 解析后的目标地址，用作连接池分键。
  */
 internal class ParsedTarget {
@@ -267,7 +275,81 @@ public class HttpClient <: Resource & ToString {
         results.toArray()
     }
 
+    /**
+     * 发送请求，并**自己处理重定向**。
+     *
+     * 逐跳在这里做，而不是交给 stdx 的 `autoRedirect`：那个实现在跨域跳转时会沿用旧
+     * `serverName`，跳到另一个域名后证书必然对不上（实测报 134）。
+     * 这里每跳都重新构造请求、重新取传输客户端，于是 SNI 与主机名校验都按"这一跳"来。
+     *
+     * 重定向预算与重试共用一个循环：否则"每跳各自重试"会让实际尝试次数按跳数相乘。
+     */
     private func execute(request: Request, forceStream: Bool): Response {
+        var current = request
+        var hop: Int64 = 0
+        /*
+         * 用有界循环而不是 `while (true)`：仓颉的类型检查器不认"循环体内必然 return"，
+         * 会要求函数末尾也有返回值。写成 `hop <= MAX` 就让"超出层数"成为正常的循环出口。
+         */
+        while (hop <= MAX_REDIRECT_HOPS) {
+            let response = executeOnce(current, forceStream)
+            if (!configValue.followRedirects) {
+                return response
+            }
+            let location = match (response.location) {
+                case Some(value) => value
+                case None => return response
+            }
+            /*
+             * 3xx 之外一律不跳：`location` 出现在其它状态码上不构成重定向语义。
+             * 303 一律降级成 GET，且丢掉请求体 —— 这是 HTTP 的明文规定。
+             */
+            let status = response.status
+            let isRedirect = status == 301 || status == 302 || status == 303 || status == 307 || status == 308
+            if (!isRedirect) {
+                return response
+            }
+            if (hop == MAX_REDIRECT_HOPS) {
+                response.close()
+                throw HttpError(ErrorKind.Protocol, "重定向层数超过 ${MAX_REDIRECT_HOPS} 层", url: current.url)
+            }
+            let next = resolveRedirect(location, current.url)
+            if (next.isEmpty()) {
+                return response
+            }
+            /* 旧响应必须释放，否则连接池的槽位被它占着。 */
+            response.close()
+            /*
+             * 构造下一跳的请求，**逐项带上原来那些请求头**。
+             *
+             * 用一个新的 builder 而不是复用 `RequestBuilder`：绑定客户端的那种构造器是 internal，
+             * 而且这里只是"发一个同样的请求到新地址"，不需要原来的客户端绑定。
+             *
+             * 303 按 HTTP 规定降级成 GET 并丢掉请求体；其余状态码保持原方法。
+             */
+            let useGet = status == 303
+            var builder = RequestBuilder(method: if (useGet) { Method.Get } else { current.method }, url: next)
+            /* `Headers` 可迭代，每项是「名字 + 该名字下的一组值」。 */
+            for ((name, values) in current.headers) {
+                for (value in values) {
+                    builder = builder.header(name, value)
+                }
+            }
+            if (!useGet) {
+                match (current.body) {
+                    case Some(body) => builder = builder.body(body)
+                    case None => ()
+                }
+            }
+            current = builder.build()
+            hop += 1
+        }
+        /* 循环正常出口只有"超出层数"一种，前面已经在相同条件下抛过错了；这里兜底。 */
+        throw HttpError(ErrorKind.Protocol, "重定向层数超过 ${MAX_REDIRECT_HOPS} 层", url: current.url)
+    }
+
+    /** 单次发送（不含重定向），是 `execute` 每跳调用一次的那一层。 */
+    private func executeOnce(request: Request, forceStream: Bool): Response {
         if (closedFlag) {
             throw HttpError(ErrorKind.Closed, "HttpClient 已关闭，无法继续发送请求", url: request.url)
         }
@@ -622,6 +704,15 @@ public class HttpClientBuilder {
         target.retry = config.retry
         target.http2 = config.http2
         target.bodyBufferLimit = config.bodyBufferLimit
+        /*
+         * 这几个字段原先漏了：`from` 是"用一份配置造 builder"，漏复制就静默沿用
+         * `ClientConfig` 的默认值 —— 调用方设了也不生效。`compensateTargetDecoding`
+         * 正是踩了这个坑（默认 true 是直连兜底，于是"显式关掉"永远无效）。
+         */
+        target.transportLogLevel = config.transportLogLevel
+        target.compensateTargetDecoding = config.compensateTargetDecoding
+        target.acceptCompression = config.acceptCompression
+        target.health = config.health.copy()
         target.httpProxy = config.httpProxy
         target.httpsProxy = config.httpsProxy
         target.useEnvironmentProxy = config.useEnvironmentProxy
@@ -706,6 +797,25 @@ public class HttpClientBuilder {
 
     public func useEnvironmentProxy(value: Bool): HttpClientBuilder {
         configValue.useEnvironmentProxy = value
+        this
+    }
+
+    /**
+     * 关掉"请求目标百分号补偿"。
+     *
+     * 这个补偿是给直连兜底的（stdx 会把请求目标里的 `%5B` 再解码一次），但**经代理时不成立**：
+     * 代理按原样转发，补偿反而把 `%` 变成 `%25`，线上真的发出双重编码。所以走代理时要关掉它。
+     */
+    public func compensateTargetDecoding(value: Bool): HttpClientBuilder {
+        configValue.compensateTargetDecoding = value
+        this
+    }
+
+    /** 完全不走代理（也忽略 `http_proxy` 等环境变量）。 */
+    public func noProxy(): HttpClientBuilder {
+        configValue.httpProxy = None
+        configValue.httpsProxy = None
+        configValue.useEnvironmentProxy = false
         this
     }
 
@@ -796,6 +906,9 @@ public class HttpClientBuilder {
 /*
  * 全局共享客户端：供 LinderHttp.* 一行式接口使用。
  * 独立成类是为了让静态可变状态集中在一处，便于 shutdown。
+ *
+ * 另外承载一份**全局配置覆盖**（见 [GlobalConfig]）：`LinderHttp.configure()` 写进来，
+ * 共享客户端重建时用它。有了这层，使用方可以在运行期改代理/超时，而不必自己建客户端。
  */
 internal class SharedClients {
     private static let mutex = Mutex()
@@ -811,7 +924,7 @@ internal class SharedClients {
                 case None => ()
             }
             if (needCreate) {
-                instance = Some(HttpClientBuilder().build())
+                instance = Some(GlobalConfig.builderFor().build())
             }
         }
         match (instance) {
@@ -827,6 +940,60 @@ internal class SharedClients {
                 case None => ()
             }
             instance = None
+        }
+    }
+
+    /**
+     * 改全局配置并让共享客户端**下次重建**。
+     *
+     * 只关旧的、不立即建新的：此刻可能正有请求在用旧连接，立即替换会让它们的池作废。
+     * 下一次 `shared()` 会用新配置建一个，在此之前旧请求还能正常收尾。
+     */
+    internal static func invalidate(): Unit {
+        synchronized(mutex) {
+            match (instance) {
+                case Some(existing) => existing.close()
+                case None => ()
+            }
+            instance = None
+        }
+    }
+}
+
+/**
+ * 全局配置覆盖。
+ *
+ * 为什么需要它：`SharedClients` 只建一次客户端（连接池、Cookie、重试策略都在里面），
+ * 一旦建好就再也改不了代理。而"用户中途改了代理设置"是真实需求，所以必须有一个能改、
+ * 且能让共享客户端重建的入口。
+ *
+ * 未设置时行为与以前完全一致（`HttpClientBuilder()` 的默认配置）。
+ */
+internal class GlobalConfig {
+    private static let mutex = Mutex()
+    private static var override: ?ClientConfig = None
+
+    internal static func set(config: ClientConfig): Unit {
+        synchronized(mutex) {
+            override = Some(config.copy())
+        }
+    }
+
+    /** 当前配置快照；没有覆盖时返回 None。 */
+    internal static func current(): ?ClientConfig {
+        synchronized(mutex) {
+            match (override) {
+                case Some(config) => Some(config.copy())
+                case None => None
+            }
+        }
+    }
+
+    /** 建一个 builder：有覆盖就用覆盖配置，否则默认。 */
+    internal static func builderFor(): HttpClientBuilder {
+        match (current()) {
+            case Some(config) => HttpClientBuilder.from(config)
+            case None => HttpClientBuilder()
         }
     }
 }
@@ -908,6 +1075,55 @@ internal func parseTarget(urlText: String): ParsedTarget {
 }
 
 /**
+ * 把 `Location` 解析成绝对 URL。
+ *
+ * 三种形态都要认，缺一种就会在真实站点上翻车：
+ *   - 绝对 URL（`https://cdn-alt.modrinth.com/...`）—— 直接用；
+ *   - 绝对路径（`/data/x.png`）—— 换到当前 origin 下；
+ *   - 相对路径（`x.png` / `../x.png`）—— 相对当前 URL 的**目录**解析。
+ *
+ * 解析不出来返回空串，由调用方把原响应交回去（总比抛一个看不懂的错强）。
+ */
+internal func resolveRedirect(location: String, baseUrl: String): String {
+    let target = location.trimAscii()
+    if (target.isEmpty()) {
+        return ""
+    }
+    if (target.startsWith("http://") || target.startsWith("https://")) {
+        return target
+    }
+    /* 当前 URL 的 origin：`scheme://host[:port]`。 */
+    let schemeEnd = baseUrl.indexOf("://")
+    let originEnd = if (schemeEnd.isSome()) {
+        schemeEnd.getOrThrow() + 3
+    } else {
+        0
+    }
+    let afterOrigin = baseUrl[originEnd..]
+    let authorityEnd = match (afterOrigin.indexOf("/")) {
+        case Some(position) => originEnd + position
+        case None => baseUrl.size
+    }
+    let origin = baseUrl[0..authorityEnd]
+    if (target.startsWith("/")) {
+        return "${origin}${target}"
+    }
+    /* 相对路径：取当前 URL 最后一个 `/` 之前的部分作为目录。 */
+    let pathStart = authorityEnd
+    let slash = baseUrl.lastIndexOf("/")
+    let directory = match (slash) {
+        case Some(position) =>
+            if (position >= pathStart) {
+                baseUrl[0..position]
+            } else {
+                "${origin}/"
+            }
+        case None => "${origin}/"
+    }
+    "${directory}/${target}"
+}
+
+/**
  * 按客户端配置构造底层 stdx 客户端。
  *
  * 注意两点实测结论：
@@ -924,7 +1140,21 @@ internal func buildTransportClient(config: ClientConfig, host: String): Client {
      */
     builder.logger(HttpLogger.logger(config.transportLogLevel))
     builder.tlsConfig(config.tls.materialize(host, config.http2.enabled))
-    builder.autoRedirect(config.followRedirects)
+    /*
+     * **底层永远不自动重定向**，重定向由本库自己在 `execute` 里逐跳做。
+     *
+     * 原因是 stdx 的自动重定向有一个致命缺陷：跨域跳转时它**沿用发起请求时那个 `serverName`**
+     * （SNI 与主机名校验都用它），于是跳到另一个域名后证书必然对不上。实测同一进程内对比：
+     *
+     *   autoRedirect(true)  + SNI  ->  TLS 握手失败 certificate verify failed (134)
+     *   autoRedirect(true)  无 SNI  ->  TLS 握手失败 handshake failure (1040)
+     *   autoRedirect(false) 手动逐跳 -> 307 正常拿到
+     *
+     * 这不是理论问题：Modrinth 的图标 CDN（`cdn.modrinth.com` 307 跳到 `cdn-alt.modrinth.com`）
+     * 正因此完全下不动。自己逐跳之后，每一跳都按**该跳的 host** 取传输客户端
+     * （见 `buildTransportClient` 的注释），SNI 与校验自然都对。
+     */
+    builder.autoRedirect(false)
     match (config.timeouts.read) {
         case Some(value) => builder.readTimeout(value)
         case None => builder.readTimeout(Duration.Max)
