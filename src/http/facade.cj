@@ -21,8 +21,10 @@ package linderHttp.http
  */
 public class LinderHttp {
     /** 全局共享客户端（可读连接池统计）。 */
-    public static func client(): HttpClient {
-        SharedClients.shared()
+    public static prop client: HttpClient {
+        get() {
+            SharedClients.shared()
+        }
     }
 
     /** 关闭全局共享客户端并释放全部长连接。 */
@@ -52,8 +54,7 @@ public class LinderHttp {
         GlobalConfig.current()
     }
 
-    public static func get(url: String, headers!: ?Headers = None,
-        timeouts!: ?Timeouts = None): Response {
+    public static func get(url: String, headers!: ?Headers = None, timeouts!: ?Timeouts = None): Response {
         SharedClients.shared().get(url, headers: headers, timeouts: timeouts)
     }
 
@@ -129,8 +130,7 @@ public class LinderHttp {
         for (url in urls) {
             let captured = url
             futures.add(spawn {
-                =>
-                client.get(captured).text()
+                => client.get(captured).text()
             })
         }
         let results = ArrayList<String>()
