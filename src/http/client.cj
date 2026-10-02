@@ -544,6 +544,24 @@ public class HttpClient <: Resource & ToString {
         builder.url(targetText)
         let merged = configValue.defaultHeaders.copy()
         merged.set("user-agent", configValue.userAgent)
+        /*
+         * Host 头显式给定，默认端口一律省略。
+         *
+         * 实测：底层在 https(+443) 时也会把端口写进 Host（`api.bilibili.com:443`），
+         * 而不少风控/网关只认标准形式 —— B 站接口收到 `Host: api.bilibili.com:443`
+         * 会直接返回 412 风控页，同一份请求去掉端口就是 200。按 RFC 9110 §7.2，
+         * 端口等于 scheme 默认值时必须省略。用户自带 host 头时不覆盖。
+         */
+        if (!merged.contains("host")) {
+            let defaultPort = (target.scheme == "https" && target.port == "443") ||
+                (target.scheme == "http" && target.port == "80")
+            let authority = if (defaultPort) {
+                target.host
+            } else {
+                "${target.host}:${target.port}"
+            }
+            merged.set("host", authority)
+        }
         for ((name, values) in request.headers) {
             for (value in values) {
                 merged.set(name, value)

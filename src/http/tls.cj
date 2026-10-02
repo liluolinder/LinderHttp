@@ -134,7 +134,13 @@ public class TlsOptions {
         }
         if (let Some(protocols) <- alpn) {
             config.supportedAlpnProtocols = protocols
-        } else if (!http2Enabled) {
+        } else if (http2Enabled) {
+            /*
+             * 只有显式报出 h2，服务端才可能选 h2 —— stdx 不会替我们加。
+             * 同时保留 http/1.1：服务端不支持 h2 时自动落到 h1.1。
+             */
+            config.supportedAlpnProtocols = ["h2", "http/1.1"]
+        } else {
             config.supportedAlpnProtocols = ["http/1.1"]
         }
         config

@@ -85,7 +85,15 @@ public class Http2Options <: ToString {
     public let initialWindowSize: UInt32
     public let headerTableSize: UInt32
 
-    public init(enabled!: Bool = true, enablePush!: Bool = false,
+    /**
+     * 构造。
+     *
+     * `enabled` 默认关闭：只有打开后 TLS 的 ALPN 才会报出 `h2`，服务端选中它才会走
+     * HTTP/2。默认关是因为底层传输栈的 h2 实现目前对公网站点不可靠 —— 实测必应这种
+     * 只发标准 SETTINGS 帧的站点直接抛 `Unknown HTTP/2 setting.`，B 站 / Cloudflare
+     * 返回 400；自建或确认兼容的服务端可以显式打开。
+     */
+    public init(enabled!: Bool = false, enablePush!: Bool = false,
         initialWindowSize!: UInt32 = 65535, headerTableSize!: UInt32 = 4096) {
         this.enabled = enabled
         this.enablePush = enablePush
