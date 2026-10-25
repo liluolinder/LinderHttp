@@ -142,7 +142,19 @@ internal class ConnectionPool {
     private let mutex: Mutex = Mutex()
     private let cond: Condition
     private let options: PoolOptions
-    private let capacity: Int64
+    /*
+     * 每 host 的并发闸门容量，**运行期可调**。
+     *
+     * 原先它是 `let`：客户端一旦建好，容量就跟着焊死了。这对"启动器同时装两个版本"是致命的 ——
+     * 两个安装共用一个进程级客户端，容量按单个安装算的话（32 并发 → 64），两边的请求加上
+     * 流式租约一挤，池子会长期贴着上限跑：`active` 只剩十几个真正在传，其余全在 `acquire` 里排队，
+     * 表现就是"设置里写着 32 个并发，实际只有三五个在动"。
+     *
+     * 而 `setMaxConnectionsPerHost` 改的是"建客户端时用的值"，客户端已经建好之后它什么也改不了。
+     * 所以容量要能在运行期放大：`grow` 只增不减（缩容会把在途请求挤掉，没有必要），
+     * 放大之后立刻 `notifyAll`，让正在排队的那批请求重新抢一轮。
+     */
+    private var capacity: Int64
     private let factory: (String, String) -> Client
     private let listener: ?EventListener
     private let health: HealthPolicy
@@ -343,6 +355,34 @@ internal class ConnectionPool {
             }
             PoolStats(groups.size, active, leases, totalRequests, createdGroups, reusedGroups,
                 evictedGroups, totalRetries)
+        }
+    }
+
+    /** 当前每 host 的并发容量（含运行期调整过的）。 */
+    internal func capacityOf(): Int64 {
+        synchronized(mutex) {
+            capacity
+        }
+    }
+
+    /**
+     * 把一个 host 的并发容量**放大**到 `wanted`（只增不减）。
+     *
+     * 返回实际生效的容量。放大之后 `notifyAll` 一次：正在 `cond.wait` 的请求会重算
+     * `entry.active + entry.leases >= capacity`，因此能立刻多放行一批，而不是等下一次归还。
+     *
+     * 缩容不做：在途请求不受影响是连接池能正常工作的前提，而"容量变大"本身不会带来副作用。
+     */
+    internal func grow(wanted: Int64): Int64 {
+        if (wanted < 1) {
+            return capacityOf()
+        }
+        synchronized(mutex) {
+            if (wanted > capacity) {
+                capacity = wanted
+                cond.notifyAll()
+            }
+            capacity
         }
     }
 

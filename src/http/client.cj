@@ -108,6 +108,22 @@ public class HttpClient <: Resource & ToString {
         pool().stats()
     }
 
+    /**
+     * 运行期把每 host 的并发容量放大（只增不减），返回实际生效的值。
+     *
+     * 需要它是因为**容量在建客户端那一刻就定了**，而宿主可能在之后才决定"同时还要跑别的下载"。
+     * `HttpClientBuilder.maxConnectionsPerHost` 对已建好的客户端无能为力，这个方法补上那个缺口：
+     * 排队中的请求会被立刻唤醒重抢一轮，不需要等现有请求归还。
+     */
+    public func growConnectionsPerHost(wanted: Int64): Int64 {
+        pool().grow(wanted)
+    }
+
+    /** 当前每 host 的并发容量。 */
+    public func connectionsPerHost(): Int64 {
+        pool().capacityOf()
+    }
+
     /** 主动关闭所有空闲连接组，返回被关闭的数量。 */
     public func closeIdleConnections(): Int64 {
         pool().closeIdle()
