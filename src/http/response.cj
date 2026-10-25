@@ -17,7 +17,21 @@ internal class BodyGuardStream <: InputStream {
     }
 
     public override func read(buffer: Array<Byte>): Int64 {
-        let count = inner.read(buffer)
+        /*
+         * 读**抛异常**时也要归还租约。
+         *
+         * 原先只在 `count <= 0`（读到 EOF）时归还，于是"连接被重置 / 读超时 / TLS 断掉"
+         * 这条路上租约永远不还：槽位被永久占住，池子容量一点点变小。实测一次双安装跑到收尾时
+         * `leases=8` 再也不降、`inflight=1` 永远不落定 —— 安装就此卡在"下载完了但不结束"。
+         *
+         * 异常本身仍然要往外抛（调用方要按失败处理），只是先把这个槽位还掉。
+         */
+        let count = try {
+            inner.read(buffer)
+        } catch (e: Exception) {
+            finish()
+            throw e
+        }
         if (count <= 0) {
             finish()
         }
@@ -69,7 +83,13 @@ internal class PrefixedStream <: InputStream {
                 }
             case None => ()
         }
-        let count = inner.read(buffer)
+        /* 同 BodyGuardStream：读异常也要归还租约，否则槽位永久泄漏。 */
+        let count = try {
+            inner.read(buffer)
+        } catch (e: Exception) {
+            finish()
+            throw e
+        }
         if (count <= 0) {
             finish()
         }

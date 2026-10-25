@@ -9,6 +9,15 @@ package linderHttp.http
 internal let MAX_REDIRECT_HOPS: Int64 = 5
 
 /**
+ * 传给 stdx `Client` 的 `poolSize` 天花板。
+ *
+ * 并发控制由外层 `ConnectionPool` 的闸门负责（精确、可放大、超出时排队），stdx 这一层只用来
+ * 防连接数无限增长。两层都用 `maxConnectionsPerHost` 会变成两道闸门：外层放大之后内层还按老值
+ * 拒绝，抛 `Too many connections to the same server!`，与日志里的并发数对不上。
+ */
+internal let TRANSPORT_POOL_CEILING: Int64 = 512
+
+/**
  * 解析后的目标地址，用作连接池分键。
  */
 internal class ParsedTarget {
@@ -1197,7 +1206,18 @@ internal func buildTransportClient(config: ClientConfig, host: String): Client {
         case Some(value) => builder.writeTimeout(value)
         case None => builder.writeTimeout(Duration.Max)
     }
-    builder.poolSize(config.pool.maxConnectionsPerHost)
+    /*
+     * 内层 stdx 的 poolSize **不跟着外层容量走**，固定给一个足够大的天花板。
+     *
+     * 真正决定"同 host 同时几个请求"的是外层 `ConnectionPool` 的闸门（`capacity`），它精确、
+     * 可运行期放大、超出时排队而不是报错。这里如果再按 `maxConnectionsPerHost` 设一遍，就等于
+     * 存在**第二道看不见的闸门**：外层容量被放大之后，内层还按老值拒绝，直接抛
+     * `Too many connections to the same server!` —— 报错而不是排队，且和日志里的并发数对不上。
+     *
+     * 这个上限只是防"连接数无限增长"，不是并发控制；实际并发始终 ≤ 外层的 `capacity`，
+     * 而空闲连接由 `idleConnectionTimeout` 回收，所以给大不会有副作用。
+     */
+    builder.poolSize(TRANSPORT_POOL_CEILING)
     // Cookie 由本库自己管理，关掉 stdx 的 CookieJar，避免两套状态打架
     builder.cookieJar(None)
     if (config.http2.enabled) {

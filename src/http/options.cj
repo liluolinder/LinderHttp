@@ -131,7 +131,16 @@ public class PoolOptions <: ToString {
     public var idleTimeout: Duration = Duration.minute * 3
     public var maxHosts: Int64 = 64
     public var acquireTimeout: Duration = Duration.second * 30
-    public var liveLeaseTimeout: Duration = Duration.minute * 5
+    /*
+     * 流式租约的上限。原来是 5 分钟 —— 那是"肯定够读完"的乐观估计，但它的真实作用是
+     * **兜底**：调用方忘记归还时的最后一道保险。
+     *
+     * 5 分钟太长了：一次双安装跑到收尾时出现 8 个泄漏租约，整台机器的下载就停在那儿，
+     * 而这 8 个槽位要等 5 分钟才回收，`acquireTimeout` 却只有 30 秒 —— 期间的新请求
+     * 全是 `PoolBusy` 失败。兜底要"尽快"，正常读取不会碰到这个上限（一个分片通常几秒内读完，
+     * 慢的连接读超时是 60 秒，仍然远小于它）。
+     */
+    public var liveLeaseTimeout: Duration = Duration.second * 90
 
     public init() {}
 
